@@ -1,0 +1,49 @@
+{%extends "index.html" %} {%block start%}
+
+<form class="col-6 mt-10 mx-auto card p-3 shadow-lg" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+  <div class="mb-3 ">
+    <h2>Register</h2>
+    <hr />
+    <label for="role" class="form-label">Role: </label>
+    <select name="role" id="role" class="form-select" aria-label="Default select example">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher</option>
+    </select><br>
+
+    <label for="exampleInputEmail1" class="form-label">UserCode: </label>
+    <input type="text"
+    name="user_code"
+     class="form-control" 
+     id="exampleInputEmail1">
+    <div class="mb-3"><br>
+
+    <label for="exampleInputEmail1" class="form-label">Username: </label>
+    <input type="text"
+    name="username"
+     class="form-control" 
+     id="exampleInputEmail1"><br>
+     
+  <div class="mb-3">
+    <label for="exampleInputPassword1" class="form-label">Password: </label>
+    <input type="password" class="form-control" name="password" id="exampleInputPassword1">
+  </div>
+  <p class="mt-2">Already have a account ? <br><a href="/login/">Log In</a></p>
+  <button type="submit" class="btn btn-primary width-full mt-3 mb-3">Register</button>
+  
+  {% if messages %}
+  <div class="alert alert-info" role="alert">
+
+    <ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+
+  
+</div>
+{% endif %}
+
+</form>
+
+{% endblock %}

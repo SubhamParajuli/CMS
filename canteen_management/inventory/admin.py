@@ -5,6 +5,6 @@ from .models import *
 
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ('item_name', 'category', 'price', 'quantity', 'is_available')
+    list_display = ('item_name', 'category', 'price','food_image', 'quantity', 'is_available')
     list_filter = ('category', 'is_available')
     search_fields = ('item_name',)

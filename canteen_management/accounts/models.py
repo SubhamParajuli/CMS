@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractUser
 #Create custom user model for the canteen management system
 
 class CustomUser(AbstractUser):
+
+    user_code = models.CharField(max_length=5, unique=True)
     Role_CHOICES = (
         ('admin', 'Admin'),
         ('student', 'Student'),

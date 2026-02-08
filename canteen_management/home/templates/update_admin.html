@@ -1,0 +1,149 @@
+{% extends "index.html" %}
+{% block start %}
+
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="row bg-dark text-white py-3 mb-4 align-items-center">
+    <div class="col-md-6 col-12">
+      <h3 class="mb-0">
+        <i class="fa fa-utensils"></i> Canteen Admin Dashboard
+      </h3>
+    </div>
+    <div class="col-md-6 col-12 text-md-end mt-2 mt-md-0">
+      <span class="me-3">Welcome, {{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-danger btn-sm">
+        <i class="fa fa-sign-out-alt"></i> Logout
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="row justify-content-center">
+
+    <!-- Add / Update Item Form -->
+    <div class="col-xl-4 col-lg-5 col-md-8 col-sm-10 col-12">
+      <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="fa fa-plus-circle"></i> Add / Update Item
+          </h5>
+        </div>
+
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Item Name -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fa fa-utensils"></i> Item Name
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                name="item_name"
+                value="{{ item.item_name }}"
+                required
+              />
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fa fa-folder"></i> Category
+              </label>
+              <select class="form-select" name="category" required>
+                <option value="">Select Category</option>
+                <option value="Snacks" {% if item.category == "Snacks" %}selected{% endif %}>Snacks</option>
+                <option value="Beverages" {% if item.category == "Beverages" %}selected{% endif %}>Beverages</option>
+                <option value="Main Course" {% if item.category == "Main Course" %}selected{% endif %}>Main Course</option>
+                <option value="Desserts" {% if item.category == "Desserts" %}selected{% endif %}>Desserts</option>
+                <option value="Other" {% if item.category == "Other" %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+
+            <!-- Price -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fa fa-dollar-sign"></i> Price (Rs.)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                name="price"
+                step="0.01"
+                min="0"
+                value="{{ item.price }}"
+                required
+              />
+            </div>
+
+            <!-- Quantity -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fa fa-boxes"></i> Quantity
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                name="quantity"
+                min="0"
+                value="{{ item.quantity }}"
+                required
+              />
+            </div>
+
+            <!-- Image -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fa fa-image"></i> Food Image
+              </label>
+              <input type="file" name="food_image" class="form-control" />
+
+              {% if item.food_image %}
+                <div class="mt-2">
+                  <small class="text-muted">Current image:</small><br>
+                  <img
+                    src="/media/{{ item.food_image }}"
+                    alt="{{ item.item_name }}"
+                    class="img-fluid rounded mt-1"
+                    style="max-height: 150px;"
+                  />
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Availability -->
+            <div class="mb-4 form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="is_available"
+                {% if item.is_available %}checked{% endif %}
+              />
+              <label class="form-check-label">
+                <i class="fa fa-check-circle"></i> Mark as Available
+              </label>
+            </div>
+
+            <!-- Buttons -->
+            <button type="submit" class="btn btn-success w-100 mb-2">
+              <i class="fa fa-save"></i> Save Item
+            </button>
+
+            <a href="/admin_page/" class="btn btn-secondary w-100">
+              Cancel
+            </a>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
