@@ -1,46 +1,37 @@
 {% extends "index.html" %}
 {% block start %}
 
-<form class="col-6 mx-auto card p-3 shadow-lg" method="post">
-    {% csrf_token %}
+<div class="center-ctn">
+    <form class="card p-4 shadow-lg" method="post" style="width: min(520px, 92%);">
+        {% csrf_token %}
 
-    <div class="mb-3 d-flex flex-column align-items-center">
-        <h2>Log In</h2>
-        <hr />
+        <div class="mb-3">
+            <h2 class="text-center">Log In</h2>
+            <hr />
 
-        <label class="form-label align-self-start">Username:</label>
-        <input 
-            type="text"
-            name="username"
-            class="form-control mb-2"
-            required
-        >
+            <label class="form-label">Username:</label>
+            <input type="text" name="username" class="form-control mb-2" required>
 
-        <label class="form-label align-self-start">Password:</label>
-        <input 
-            type="password"
-            name="password"
-            class="form-control"
-            required
-        >
+            <label class="form-label">Password:</label>
+            <input type="password" name="password" class="form-control" required>
 
-        <p class="mt-2">
-            Don't have an account?
-            <a href="/register/">Register</a>
-        </p>
+            <p class="mt-2">
+                Don't have an account? <a href="/register/">Register</a>
+            </p>
 
-        <button type="submit" class="btn btn-primary mt-3">
-            Submit
-        </button>
+            <div class="d-grid mt-3">
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
 
-        {% if messages %}
-        <div class="alert alert-danger mt-3 w-100">
-            {% for message in messages %}
-                <p class="mb-0">{{ message }}</p>
-            {% endfor %}
+            {% if messages %}
+            <div class="alert alert-danger mt-3 w-100">
+                {% for message in messages %}
+                    <p class="mb-0">{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
-</form>
+    </form>
+</div>
 
 {% endblock %}

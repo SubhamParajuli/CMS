@@ -55,7 +55,7 @@ def logout_view(request):
     logout(request)
     return render(request, 'index.html')
 
-
+@login_required(login_url='/login/')
 def admin_page(request):
     if request.method == 'POST':
         item_name = request.POST.get('item_name')

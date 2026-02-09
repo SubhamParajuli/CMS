@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def inventory_list(request):
     items = Inventory.objects.filter(is_available = True)
-    context = {'items': items}
+    context = {'inventory': items}
     return render(request, 'menu.html', context)
 
 
