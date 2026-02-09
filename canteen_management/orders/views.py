@@ -6,4 +6,3 @@ from django.contrib import messages
 from payments.models import *
 
 # Create your views here.
-

@@ -14,6 +14,7 @@ class Order(models.Model):
         max_digits=8,
         decimal_places=2
     )
+    is_paid=models.BooleanField(default=False)
 
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"

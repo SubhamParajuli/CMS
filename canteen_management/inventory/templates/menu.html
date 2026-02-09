@@ -2,57 +2,217 @@
 {% block start %}
 
 <!-- Header -->
-<div class="d-flex justify-content-between align-items-center p-3 bg-dark text-light">
+<div class="d-flex justify-content-between align-items-center p-3 bg-dark text-light shadow">
   <h3 class="mb-0">
     <i class="fa fa-utensils"></i> Canteen Menu
   </h3>
-  <div class="d-flex align-items-center gap-2">
-    <span>Welcome, {{ user.username }}</span>
+  <div class="d-flex align-items-center gap-3">
+    <span class="fw-light">Welcome, <strong>{{ user.username }}</strong></span>
     <a href="{% url 'logout' %}" class="btn btn-danger btn-sm">
       <i class="fa fa-sign-out-alt"></i> Logout
     </a>
   </div>
 </div>
 
-<div class="d-flex" style="height: calc(105vh - 100px);">
+<div class="d-flex" style="height: calc(100vh - 70px);">
 
   <!-- RIGHT SIDE (Menu Items) -->
-  <div class="flex-grow-1 bg-light p-3" style="flex:3.5;">
+  <div class="flex-grow-1 p-3" style="flex: 3.5; background-color: #f8f9fa; overflow-y: auto;">
     <div class="container-fluid">
-      <div class="row g-3">
+      
+      <!-- Page Title -->
+      <div class="mb-3">
+        <h5 class="fw-bold text-dark mb-1">Our Menu</h5>
+        <p class="text-muted small mb-0">Choose your favorite items and add to cart</p>
+      </div>
 
+      <!-- Menu Grid -->
+      <div class="row g-2">
         {% for item in inventory %}
-        <!-- ITEM CARD -->
-        <div class="col-lg-3 col-md-4 col-sm-6">
-          <div class="card h-100 shadow-sm">
-            <img 
-              src="/media/{{ item.food_image }}" 
-              class="card-img-top"
-              alt="Item Image"
-              style="object-fit: cover; height: 160px;"
-            >
-            <div class="card-body d-flex flex-column">
-              <h6 class="card-title">{{item.item_name}}</h6>
-              <p class="card-text text-muted mb-2">Rs {{item.price}}</p>
+        <div class="col-xxl-2 col-xl-3 col-lg-3 col-md-4 col-sm-6 col-6">
+          <div class="card food-card h-100 border-0 shadow-sm">
+            
+            <!-- Food Image Container -->
+            <div class="position-relative overflow-hidden" style="height: 120px; background-color: #e9ecef;">
+              <img 
+                src="/media/{{ item.food_image }}"
+                class="w-100 h-100"
+                style="object-fit: cover; transition: transform 0.3s ease;"
+                alt="{{ item.item_name }}"
+                onmouseover="this.style.transform='scale(1.05)'"
+                onmouseout="this.style.transform='scale(1)'"
+              >
+              
+              <!-- Optional: Badge for special items -->
+              {% if item.is_special %}
+              <span class="badge bg-danger position-absolute top-0 end-0 m-1" style="font-size: 0.65rem;">Special</span>
+              {% endif %}
+            </div>
 
-              <a href="/checkout/" class="btn btn-primary btn-sm mt-auto">
-                <i class="fa fa-plus"></i> Add Item
-              </a>
+            <!-- Card Body -->
+            <div class="card-body d-flex flex-column p-2">
+
+              <!-- Item Name -->
+              <h6 class="card-title fw-bold mb-1 text-dark" style="font-size: 0.85rem; min-height: 32px; line-height: 1.2;">
+                {{ item.item_name }}
+              </h6>
+
+              <!-- Price -->
+              <div class="mb-2">
+                <span class="fw-bold text-success" style="font-size: 0.95rem;">Rs {{ item.price }}</span>
+              </div>
+
+              <!-- Quantity Selector -->
+              <div class="d-flex align-items-center justify-content-between mb-2 p-1 bg-light rounded">
+                <button class="btn btn-sm btn-outline-secondary qty-btn minus" style="width: 24px; height: 24px; padding: 0; font-size: 0.75rem;">
+                  <i class="fa fa-minus"></i>
+                </button>
+                <span class="qty-value fw-semibold" style="font-size: 0.9rem;">1</span>
+                <button class="btn btn-sm btn-outline-secondary qty-btn plus" style="width: 24px; height: 24px; padding: 0; font-size: 0.75rem;">
+                  <i class="fa fa-plus"></i>
+                </button>
+              </div>
+
+              <!-- Add to Cart Button -->
+              <button 
+                class="btn btn-primary w-100 add-to-cart btn-sm"
+                data-item-id="{{ item.id }}"
+                style="transition: all 0.3s ease; font-size: 0.75rem; padding: 0.35rem 0.5rem;"
+              >
+                <i class="fa fa-cart-plus me-1"></i>Add
+              </button>
+
             </div>
           </div>
         </div>
-
-          {% endfor %}
+        {% empty %}
+        <div class="col-12 text-center py-5">
+          <i class="fa fa-inbox fa-3x text-muted mb-3"></i>
+          <p class="text-muted">No items available at the moment</p>
         </div>
-
+        {% endfor %}
       </div>
+
     </div>
   </div>
 
   <!-- LEFT SIDE (DO NOT TOUCH) -->
-  <div style="flex:0.45; background-color: red;">
+  <div class='shadow-lg' style="flex: 0.45; background-color: #e9ecef; padding: 5px;
+  ">
+
+    <div style="min-height: 85%; background-color: #212529; ">
+    </div>
+
+  <div class="d-grid gap-1">
+  <button class="btn btn-warning" type="button">CheckOut</button>
+  <button class="btn btn-secondary" type="button">Cancel</button>
+</div>
   </div>
 
 </div>
+
+<style>
+  /* Custom Styles for E-commerce Look */
+  .food-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .food-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15) !important;
+  }
+
+  .add-to-cart:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+  }
+
+  .qty-btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .qty-btn:hover {
+    background-color: #0d6efd !important;
+    color: white !important;
+    border-color: #0d6efd !important;
+  }
+
+  .qty-value {
+    min-width: 30px;
+    text-align: center;
+    color: #212529;
+  }
+
+  /* Hide scrollbar but keep scrolling functionality */
+  .flex-grow-1 {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .flex-grow-1::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 576px) {
+    .food-card {
+      font-size: 0.85rem;
+    }
+  }
+</style>
+
+<script>
+  // Quantity selector functionality
+  document.querySelectorAll('.food-card').forEach(card => {
+    const minusBtn = card.querySelector('.minus');
+    const plusBtn = card.querySelector('.plus');
+    const qtyValue = card.querySelector('.qty-value');
+
+    minusBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      let currentQty = parseInt(qtyValue.textContent);
+      if (currentQty > 1) {
+        qtyValue.textContent = currentQty - 1;
+      }
+    });
+
+    plusBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      let currentQty = parseInt(qtyValue.textContent);
+      if (currentQty < 99) {
+        qtyValue.textContent = currentQty + 1;
+      }
+    });
+  });
+
+  // Add to cart functionality
+  document.querySelectorAll('.add-to-cart').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const itemId = this.getAttribute('data-item-id');
+      const card = this.closest('.food-card');
+      const quantity = parseInt(card.querySelector('.qty-value').textContent);
+      
+      // Add your AJAX call here to add item to cart
+      console.log(`Adding item ${itemId} with quantity ${quantity} to cart`);
+      
+      // Visual feedback
+      this.innerHTML = '<i class="fa fa-check me-1"></i>Added!';
+      setTimeout(() => {
+        this.innerHTML = '<i class="fa fa-cart-plus me-1"></i>Add';
+      }, 1500);
+    });
+
+
+  });
+
+
+
+</script>
 
 {% endblock %}
