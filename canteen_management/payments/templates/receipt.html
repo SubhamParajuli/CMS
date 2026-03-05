@@ -1,47 +1,150 @@
 {% extends "index.html" %}
 {% block start %}
+
+<style>
+
+.receipt-card{
+    max-width:420px;
+    margin:auto;
+    font-size:14px;
+}
+
+.receipt-header{
+    text-align:center;
+}
+
+.receipt-header h4{
+    font-weight:bold;
+}
+
+.receipt-info{
+    font-size:13px;
+}
+
+.receipt-footer{
+    text-align:center;
+    font-size:13px;
+}
+
+@media print{
+
+    body *{
+        visibility:hidden;
+    }
+
+    .receipt-card, .receipt-card *{
+        visibility:visible;
+    }
+
+    .receipt-card{
+        position:absolute;
+        left:0;
+        top:0;
+        width:100%;
+        box-shadow:none;
+        border:none;
+    }
+
+    .no-print{
+        display:none;
+    }
+
+}
+
+</style>
+
+
 <div class="container mt-4">
 
-    <div class="card shadow p-4">
+    <div class="card shadow p-4 receipt-card">
 
-        <h4 class="text-center mb-3">NCE Canteen Receipt</h4>
+        <!-- Header -->
+        <div class="receipt-header mb-3">
+            <h4>NCE Canteen</h4>
+            <div>National College of Engineering</div>
+            <div>Talchikhel, Lalitpur</div>
+            <hr>
+            <h6><strong>Payment Receipt</strong></h6>
+        </div>
 
-        <p><strong>Receipt ID:</strong> {{ order.id }}</p>
-        <p><strong>Order ID:</strong> {{ order.id }}</p>
-        <p><strong>Date:</strong> {{ order.order_date }}</p>
 
-        <hr>
+        <!-- Receipt Info -->
+        <div class="receipt-info mb-3">
 
-        <table class="table table-bordered">
-            <thead class="table-dark">
+            <div class="d-flex justify-content-between">
+                <span><strong>Receipt ID:</strong></span>
+                <span>{{ order.id }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <span><strong>Order ID:</strong></span>
+                <span>{{ order.id }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <span><strong>Date:</strong></span>
+                <span>{{ order.order_date }}</span>
+            </div>
+
+        </div>
+
+
+        <!-- Items Table -->
+        <table class="table table-sm table-bordered text-center">
+
+            <thead class="table-light">
                 <tr>
-                    <th>Item</th>
+                    <th class="text-start">Item</th>
                     <th>Qty</th>
                     <th>Price</th>
                     <th>Total</th>
                 </tr>
             </thead>
+
             <tbody>
+
                 {% for item in order.items.all %}
+
                 <tr>
-                    <td>{{ item.item.item_name }}</td>
+                    <td class="text-start">{{ item.item.item_name }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>Rs {{ item.price_at_purchase }}</td>
-                    <td>
-                        Rs {{ item.price_at_purchase|floatformat:2|add:""|floatformat }}
-                    </td>
+                    <td>Rs {{ item.total_price }}</td>
                 </tr>
+
                 {% endfor %}
+
             </tbody>
+
         </table>
 
-        <h5 class="text-end">Grand Total: Rs {{ order.total_amount }}</h5>
 
-        <div class="text-center mt-3">
-            <button onclick="window.print()" class="btn btn-warning">
+        <!-- Grand Total -->
+        <div class="text-end mt-2">
+            <h5><strong>Total: Rs {{ order.total_amount }}</strong></h5>
+        </div>
+
+        <hr>
+
+
+        <!-- Footer -->
+        <div class="receipt-footer mb-3">
+            Thank you for visiting NCE Canteen! <br>
+            Please visit again.
+        </div>
+
+
+        <!-- Buttons -->
+        <div class="text-center no-print">
+
+            <button onclick="window.print()" class="btn btn-warning btn-sm">
                 Print Receipt
             </button>
-            <a href="/menu/" class="btn btn-outline-secondary">Cancel</a>
+
+            <a href="/menu/" class="btn btn-outline-secondary btn-sm">
+                Back to Menu
+            </a>
+
         </div>
 
     </div>
