@@ -50,7 +50,7 @@ class AdminAccessControlTests(TestCase):
     def test_student_cannot_delete_item(self):
         self.client.login(username='student_user', password='testpass123')
 
-        response = self.client.get(reverse('admin_delete_item', args=[self.item.id]))
+        response = self.client.post(reverse('admin_delete_item', args=[self.item.id]))
 
         self.assertRedirects(response, '/menu/')
         self.assertTrue(Inventory.objects.filter(id=self.item.id).exists())
@@ -63,3 +63,19 @@ class AdminAccessControlTests(TestCase):
 
         self.assertEqual(dashboard_response.status_code, 200)
         self.assertEqual(update_response.status_code, 200)
+
+    def test_admin_delete_requires_post(self):
+        self.client.login(username='admin_user', password='testpass123')
+
+        response = self.client.get(reverse('admin_delete_item', args=[self.item.id]))
+
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(Inventory.objects.filter(id=self.item.id).exists())
+
+    def test_admin_can_delete_item_with_post(self):
+        self.client.login(username='admin_user', password='testpass123')
+
+        response = self.client.post(reverse('admin_delete_item', args=[self.item.id]))
+
+        self.assertRedirects(response, reverse('admin_page'))
+        self.assertFalse(Inventory.objects.filter(id=self.item.id).exists())

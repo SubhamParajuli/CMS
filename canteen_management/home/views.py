@@ -2,6 +2,7 @@ from functools import wraps
 
 from django.shortcuts import get_object_or_404, render,redirect
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from accounts.models import CustomUser
 from inventory.models import Inventory
 from django.contrib import messages
@@ -119,6 +120,7 @@ def admin_update_item(request, item_id):
 
 
 @admin_required
+@require_POST
 def admin_delete_item(request, item_id):
     item = get_object_or_404(Inventory, id=item_id)
     item.delete()
