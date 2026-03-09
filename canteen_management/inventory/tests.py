@@ -69,3 +69,19 @@ class InventoryImageRenderingTests(TestCase):
 
         self.assertContains(response, 'container.replaceChildren()')
         self.assertNotContains(response, 'container.innerHTML +=')
+
+    def test_menu_uses_stacked_mobile_layout(self):
+        Inventory.objects.create(
+            item_name='Mobile Item',
+            category='snacks',
+            price='40.00',
+            quantity=3,
+            is_available=True,
+        )
+
+        response = self.client.get(reverse('inventory_list'))
+
+        self.assertContains(response, 'menu-layout d-flex flex-column flex-lg-row')
+        self.assertContains(response, 'menu-panel flex-grow-1 p-3 order-2 order-lg-1')
+        self.assertContains(response, 'cart-sidebar shadow-lg d-flex flex-column order-1 order-lg-2')
+        self.assertContains(response, '@media (max-width: 991.98px)')

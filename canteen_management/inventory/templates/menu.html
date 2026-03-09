@@ -15,10 +15,10 @@
   </div>
 </div>
 
-<div class="d-flex" style="height: calc(100vh - 70px);">
+<div class="menu-layout d-flex flex-column flex-lg-row">
 
   <!-- RIGHT SIDE (Menu Items) -->
-  <div class="flex-grow-1 p-3" style="flex: 3.5; background-color: #f8f9fa; overflow-y: auto;">
+  <div class="menu-panel flex-grow-1 p-3 order-2 order-lg-1">
     <div class="container-fluid">
       
       <!-- Page Title -->
@@ -113,8 +113,7 @@
 
   <!-- LEFT SIDE (DO NOT TOUCH) -->
 <!-- LEFT SIDE -->
-<div class="shadow-lg d-flex flex-column" 
-     style="flex: 0.45; background-color: #e9ecef; padding: 5px;">
+<div class="cart-sidebar shadow-lg d-flex flex-column order-1 order-lg-2">
 
   <!-- Cart Panel -->
   <div class="d-flex flex-column flex-grow-1 bg-dark text-light rounded p-2">
@@ -159,6 +158,22 @@
 #cart-container::-webkit-scrollbar-thumb {
   background-color: #6c757d;
   border-radius: 4px;
+}
+
+.menu-layout {
+  min-height: calc(100vh - 70px);
+}
+
+.menu-panel {
+  flex: 1 1 auto;
+  background-color: #f8f9fa;
+  overflow-y: auto;
+}
+
+.cart-sidebar {
+  flex: 0 0 320px;
+  background-color: #e9ecef;
+  padding: 5px;
 }
 
 .cart-item {
@@ -233,6 +248,29 @@
     flex-direction: column;
   } */
   /* Responsive adjustments */
+  @media (max-width: 991.98px) {
+    .menu-layout {
+      min-height: auto;
+      gap: 0.75rem;
+    }
+
+    .menu-panel {
+      overflow-y: visible;
+    }
+
+    .cart-sidebar {
+      flex-basis: auto;
+      width: 100%;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .cart-sidebar .bg-dark {
+      max-height: 45vh;
+    }
+  }
+
   @media (max-width: 576px) {
     .food-card {
       font-size: 0.85rem;
