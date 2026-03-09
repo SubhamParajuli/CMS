@@ -51,6 +51,13 @@ class ReceiptViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_receipt_view_redirects_anonymous_user_to_login(self):
+        self.client.logout()
+
+        response = self.client.get(reverse('receipt', args=[1]))
+
+        self.assertRedirects(response, '/login/?next=/receipt/1/')
+
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost'])
 class PaymentConsistencyCommandTests(TestCase):

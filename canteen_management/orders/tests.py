@@ -120,3 +120,15 @@ class CheckoutTests(TestCase):
         self.item_one.refresh_from_db()
         self.assertEqual(self.item_one.quantity, 5)
         self.assertTrue(self.item_one.is_available)
+
+
+@override_settings(ALLOWED_HOSTS=['testserver', 'localhost'])
+class CheckoutAuthRedirectTests(TestCase):
+    def test_checkout_redirects_anonymous_user_to_login(self):
+        response = self.client.post(
+            reverse('checkout'),
+            data=json.dumps({'cart': {}}),
+            content_type='application/json',
+        )
+
+        self.assertRedirects(response, '/login/?next=/checkout/')
