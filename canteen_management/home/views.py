@@ -38,8 +38,8 @@ def login_page(request):
     next_url = request.POST.get('next') or request.GET.get('next') or ''
 
     if request.method == 'POST':
-        username = request.POST.get('username').strip()
-        password = request.POST.get('password').strip()
+        username = (request.POST.get('username') or '').strip()
+        password = (request.POST.get('password') or '').strip()
 
         user = authenticate(request, username=username, password=password)
 
