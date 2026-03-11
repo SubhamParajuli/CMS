@@ -26,6 +26,29 @@ PY
 fi
 
 python manage.py migrate --noinput
+
+if [[ -n "${DJANGO_FIXTURE_PATH:-}" && -f "${DJANGO_FIXTURE_PATH}" ]]; then
+  python manage.py shell <<'PY'
+import os
+from django.core.management import call_command
+from django.contrib.auth import get_user_model
+from inventory.models import Inventory
+
+fixture_path = os.environ.get("DJANGO_FIXTURE_PATH")
+force = os.environ.get("DJANGO_FIXTURE_FORCE", "").lower() in {"1", "true", "yes"}
+
+User = get_user_model()
+has_users = User.objects.exists()
+has_inventory = Inventory.objects.exists()
+
+if force or not (has_users or has_inventory):
+    call_command("loaddata", fixture_path, verbosity=1)
+    print("Loaded fixture:", fixture_path)
+else:
+    print("Skipping fixture load; data already present.")
+PY
+fi
+
 python manage.py collectstatic --noinput
 
 if [[ -n "${DJANGO_ADMIN_USERNAME:-}" && -n "${DJANGO_ADMIN_PASSWORD:-}" && -n "${DJANGO_ADMIN_USER_CODE:-}" ]]; then
