@@ -3,8 +3,48 @@
 {% load static %}
 
 <div class="container-fluid">
+  <style>
+    .update-item-shell {
+      max-width: 760px;
+      margin: 0 auto;
+    }
 
-  <!-- Header -->
+    .update-item-card {
+      border: none;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .image-preview-card {
+      background: #f8f9fa;
+      border: 1px dashed #ced4da;
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+
+    .image-preview-card__label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .image-preview-card__image {
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(108, 117, 125, 0.2);
+      background: #fff;
+    }
+
+    .form-hint {
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 0.25rem;
+    }
+  </style>
+
   <div class="row bg-dark text-white py-3 mb-4 align-items-center">
     <div class="col-md-6 col-12">
       <h3 class="mb-0">
@@ -22,125 +62,173 @@
     </div>
   </div>
 
-  <!-- Main Content -->
   <div class="row justify-content-center">
-
-    <!-- Add / Update Item Form -->
-    <div class="col-xl-4 col-lg-5 col-md-8 col-sm-10 col-12">
-      <div class="card shadow-sm mb-4">
-
+    <div class="col-xl-8 col-lg-9 col-md-10 col-12 update-item-shell">
+      <div class="card shadow-sm mb-4 update-item-card animate-fade-in-up">
         <div class="card-header bg-success text-white">
           <h5 class="mb-0">
-            <i class="fa fa-plus-circle"></i> Add / Update Item
+            <i class="fa fa-pen-to-square"></i> Update Item
           </h5>
         </div>
 
         <div class="card-body">
-          {% if form.non_field_errors %}
-          <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}
-              <div>{{ error }}</div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-
-            <!-- Item Name -->
-            <div class="mb-3">
-              <label class="form-label">
-                <i class="fa fa-utensils"></i> Item Name
-              </label>
-              {{ form.item_name }}
-              {% for error in form.item_name.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <!-- Category -->
-            <div class="mb-3">
-              <label class="form-label">
-                <i class="fa fa-folder"></i> Category
-              </label>
-              {{ form.category }}
-              {% for error in form.category.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <!-- Price -->
-            <div class="mb-3">
-              <label class="form-label">
-                <i class="fa fa-dollar-sign"></i> Price (Rs.)
-              </label>
-              {{ form.price }}
-              {% for error in form.price.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <!-- Quantity -->
-            <div class="mb-3">
-              <label class="form-label">
-                <i class="fa fa-boxes"></i> Quantity
-              </label>
-              {{ form.quantity }}
-              {% for error in form.quantity.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <!-- Image -->
-            <div class="mb-3">
-              <label class="form-label">
-                <i class="fa fa-image"></i> Food Image
-              </label>
-              {{ form.food_image }}
-              {% for error in form.food_image.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-
-              {% if item.food_image %}
-                <div class="mt-2">
-                  <small class="text-muted">Current image:</small><br>
-                  <img
-                    src="{% if item.food_image %}{{ item.food_image.url }}{% else %}{% static 'inventory_images/momo.webp' %}{% endif %}"
-                    alt="{{ item.item_name }}"
-                    class="img-fluid rounded mt-1"
-                    style="max-height: 150px;"
-                  />
-                </div>
+          <div class="d-flex flex-column flex-lg-row gap-4 align-items-start">
+            <div class="flex-grow-1 w-100">
+              {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+                {% endfor %}
+              </div>
               {% endif %}
+
+              <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                  <label class="form-label"><i class="fa fa-utensils"></i> Item Name</label>
+                  {{ form.item_name }}
+                  {% for error in form.item_name.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label"><i class="fa fa-folder"></i> Category</label>
+                  {{ form.category }}
+                  {% for error in form.category.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label"><i class="fa fa-dollar-sign"></i> Price (Rs.)</label>
+                  {{ form.price }}
+                  {% for error in form.price.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label"><i class="fa fa-boxes"></i> Quantity</label>
+                  {{ form.quantity }}
+                  {% for error in form.quantity.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label"><i class="fa fa-image"></i> Food Image</label>
+                  {{ form.food_image }}
+                  {% for error in form.food_image.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                  <div class="form-hint">Leave empty to keep the current image. Supported: JPG, PNG, WEBP, GIF up to 5 MB.</div>
+
+                  <div class="mt-3 image-preview-card{% if not item.food_image %} d-none{% endif %}" id="update-item-preview-wrap">
+                    <span class="image-preview-card__label">Current or replacement image</span>
+                    <img
+                      src="{% if item.food_image %}{{ item.food_image.url }}{% endif %}"
+                      alt="{{ item.item_name }}"
+                      id="update-item-preview-image"
+                      data-original-src="{% if item.food_image %}{{ item.food_image.url }}{% endif %}"
+                      class="image-preview-card__image"
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-4 form-check">
+                  {{ form.is_available }}
+                  <label class="form-check-label" for="{{ form.is_available.id_for_label }}">
+                    Mark as Available
+                  </label>
+                  {% for error in form.is_available.errors %}
+                  <div class="text-danger small mt-1">{{ error }}</div>
+                  {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 mb-2">
+                  <i class="fa fa-save"></i> Save Item
+                </button>
+
+                <a href="/admin_page/" class="btn btn-secondary w-100">
+                  Cancel
+                </a>
+              </form>
             </div>
-
-            <!-- Availability -->
-            <div class="mb-4 form-check">
-              {{ form.is_available }}
-              <label class="form-check-label">
-                <i class="fa fa-check-circle"></i> Mark as Available
-              </label>
-              {% for error in form.is_available.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <!-- Buttons -->
-            <button type="submit" class="btn btn-success w-100 mb-2">
-              <i class="fa fa-save"></i> Save Item
-            </button>
-
-            <a href="/admin_page/" class="btn btn-secondary w-100">
-              Cancel
-            </a>
-
-          </form>
+          </div>
         </div>
-
       </div>
     </div>
-
   </div>
 </div>
+
+<script>
+  (function () {
+    const previewWrap = document.getElementById('update-item-preview-wrap');
+    const previewImage = document.getElementById('update-item-preview-image');
+    const fileInput = document.querySelector('input[name="food_image"]');
+    const clearToggle = document.querySelector('[data-image-clear-toggle]');
+    const clearButton = document.querySelector('[data-image-clear-button]');
+    const resetButton = document.querySelector('[data-image-reset]');
+
+    if (!previewWrap && !previewImage) {
+      return;
+    }
+
+    function restoreOriginalPreview() {
+      const originalSrc = previewImage.dataset.originalSrc;
+
+      if (originalSrc) {
+        previewImage.src = originalSrc;
+        previewWrap.classList.remove('d-none');
+        return;
+      }
+
+      previewImage.removeAttribute('src');
+      previewWrap.classList.add('d-none');
+    }
+
+    function syncPreview() {
+      const [file] = fileInput.files || [];
+
+      if (clearToggle && clearToggle.checked) {
+        previewImage.removeAttribute('src');
+        previewWrap.classList.add('d-none');
+        return;
+      }
+
+      if (!file || !file.type.startsWith('image/')) {
+        restoreOriginalPreview();
+        return;
+      }
+
+      const nextPreviewUrl = URL.createObjectURL(file);
+      previewImage.src = nextPreviewUrl;
+      previewWrap.classList.remove('d-none');
+      previewImage.onload = () => URL.revokeObjectURL(nextPreviewUrl);
+    }
+
+    fileInput.addEventListener('change', syncPreview);
+
+    if (clearToggle) {
+      clearToggle.addEventListener('change', syncPreview);
+    }
+
+    if (clearButton && clearToggle) {
+      clearButton.addEventListener('click', () => {
+        window.setTimeout(syncPreview, 0);
+      });
+    }
+
+    if (resetButton) {
+      resetButton.addEventListener('click', () => {
+        window.setTimeout(syncPreview, 0);
+      });
+    }
+
+    restoreOriginalPreview();
+  })();
+</script>
 
 {% endblock %}

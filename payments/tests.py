@@ -5,6 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import CustomUser
 from orders.models import Order
@@ -50,6 +51,26 @@ class ReceiptViewTests(TestCase):
         response = self.client.get(reverse('receipt', args=[order.id]))
 
         self.assertEqual(response.status_code, 200)
+
+    def test_receipt_view_uses_am_pm_time_format(self):
+        order = Order.objects.create(
+            user=self.user,
+            total_amount='50.00',
+            is_paid=True,
+        )
+        Payment.objects.create(
+            order=order,
+            payment_method='CASH',
+            amount_paid='50.00',
+        )
+        Receipt.objects.create(order=order)
+        Order.objects.filter(pk=order.pk).update(
+            order_date=timezone.datetime(2026, 3, 11, 15, 30, tzinfo=timezone.get_current_timezone())
+        )
+
+        response = self.client.get(reverse('receipt', args=[order.id]))
+
+        self.assertContains(response, '2026-03-11 03:30 PM')
 
     def test_receipt_view_redirects_anonymous_user_to_login(self):
         self.client.logout()

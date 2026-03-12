@@ -1,8 +1,10 @@
+from decimal import Decimal
 from pathlib import Path
 
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from PIL import Image, UnidentifiedImageError
 
 from accounts.models import CustomUser
 from inventory.models import Inventory
@@ -16,6 +18,18 @@ ALLOWED_IMAGE_CONTENT_TYPES = {
     'image/webp',
 }
 MAX_IMAGE_SIZE = 5 * 1024 * 1024
+
+
+class AdminImageInput(forms.ClearableFileInput):
+    template_name = 'widgets/admin_image_input.html'
+    initial_text = 'Current file'
+    input_text = 'Choose replacement image'
+    clear_checkbox_label = 'Remove current image'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['display_name'] = Path(value.name).name if value else ''
+        return context
 
 
 class RegistrationForm(forms.Form):
@@ -116,21 +130,23 @@ class InventoryItemForm(forms.ModelForm):
             'price': forms.NumberInput(
                 attrs={
                     'class': 'form-control',
-                    'step': '0.01',
-                    'min': '0',
-                    'placeholder': '0.00',
+                    'step': '1',
+                    'min': '1',
+                    'inputmode': 'numeric',
+                    'placeholder': '0',
                 }
             ),
             'quantity': forms.NumberInput(
                 attrs={
                     'class': 'form-control',
                     'min': '0',
+                    'inputmode': 'numeric',
                     'placeholder': '0',
                 }
             ),
-            'food_image': forms.ClearableFileInput(
+            'food_image': AdminImageInput(
                 attrs={
-                    'class': 'form-control',
+                    'class': 'admin-image-widget__native-input',
                     'accept': 'image/*',
                 }
             ),
@@ -138,15 +154,26 @@ class InventoryItemForm(forms.ModelForm):
         }
 
     def clean_item_name(self):
-        item_name = (self.cleaned_data.get('item_name') or '').strip()
+        item_name = ' '.join((self.cleaned_data.get('item_name') or '').split())
         if not item_name:
             raise ValidationError('Item name is required.')
+        if len(item_name) < 2:
+            raise ValidationError('Item name must be at least 2 characters long.')
+        duplicate_exists = Inventory.objects.exclude(pk=self.instance.pk).filter(
+            item_name__iexact=item_name
+        ).exists()
+        if duplicate_exists:
+            raise ValidationError('An item with this name already exists.')
         return item_name
 
     def clean_price(self):
         price = self.cleaned_data.get('price')
-        if price is not None and price < 0:
-            raise ValidationError('Price cannot be negative.')
+        if price is None:
+            return price
+        if price <= 0:
+            raise ValidationError('Price must be at least Rs 1.')
+        if price != price.quantize(Decimal('1')):
+            raise ValidationError('Price must be a whole rupee amount.')
         return price
 
     def clean_quantity(self):
@@ -166,11 +193,20 @@ class InventoryItemForm(forms.ModelForm):
         if extension not in ALLOWED_IMAGE_EXTENSIONS:
             raise ValidationError('Upload a JPG, PNG, WEBP, or GIF image.')
 
-        if not content_type or content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
-            raise ValidationError('Upload a valid image file.')
+        # if not content_type or content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+        #     raise ValidationError('Upload a valid image file.')
 
         if food_image.size > MAX_IMAGE_SIZE:
             raise ValidationError('Image size must be 5 MB or smaller.')
+
+        current_position = food_image.tell() if hasattr(food_image, 'tell') else None
+        # try:
+        #     Image.open(food_image).verify()
+        # except (UnidentifiedImageError, OSError, ValueError):
+        #     raise ValidationError('Upload a valid image file.')
+        # finally:
+        #     if hasattr(food_image, 'seek'):
+        #         food_image.seek(current_position or 0)
 
         return food_image
 

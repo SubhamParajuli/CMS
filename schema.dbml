@@ -1,0 +1,94 @@
+Project CMS {
+  database_type: 'PostgreSQL'
+  Note: 'Business-domain ERD only. Django framework tables such as django_session, auth_group, django_admin_log, django_migrations, and auth_permission are intentionally omitted.'
+}
+
+Table accounts_customuser {
+  id bigint [pk, increment, note: 'Primary key for the custom user record.']
+  password varchar(128) [not null, note: 'Django password hash used for authentication.']
+  last_login timestamptz [note: 'Most recent successful login timestamp.']
+  is_superuser boolean [not null, default: false, note: 'True for unrestricted admin accounts.']
+  username varchar(150) [not null, unique, note: 'Unique login username.']
+  first_name varchar(150) [not null, default: '', note: 'Given name.']
+  last_name varchar(150) [not null, default: '', note: 'Family name.']
+  email varchar(254) [not null, default: '', note: 'Email address.']
+  is_staff boolean [not null, default: false, note: 'True when the user can access admin functionality.']
+  is_active boolean [not null, default: true, note: 'False when the user account is disabled.']
+  date_joined timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Account creation timestamp.']
+  user_code varchar(5) [not null, unique, note: 'Unique five-digit campus/user code.']
+  role varchar(20) [not null, note: 'Business role: admin, student, or teacher.']
+
+  Note: 'Business users of the canteen system. The table comes from a custom Django user model, but auth join tables are intentionally excluded from the ERD.'
+
+  indexes {
+    (username) [unique, name: 'accounts_customuser_username_key']
+    (user_code) [unique, name: 'accounts_customuser_user_code_key']
+  }
+}
+
+Table inventory_inventory {
+  id bigint [pk, increment, note: 'Primary key for a menu item.']
+  item_name varchar(100) [not null, note: 'Display name shown on the menu.']
+  category varchar(50) [not null, note: 'Menu category: main_course, snacks, beverages, desserts, or other.']
+  price numeric(6,2) [not null, note: 'Current selling price.']
+  quantity bigint [not null, note: 'Current stock quantity available.']
+  food_image varchar(100) [note: 'Optional path to the uploaded item image.']
+  is_available boolean [not null, default: true, note: 'False when the item should not be offered for sale.']
+
+  Note: 'Canteen menu inventory with category, pricing, stock, and optional image path.'
+}
+
+Table orders_order {
+  id bigint [pk, increment, note: 'Primary key for an order.']
+  user_id bigint [not null, note: 'User who placed the order.']
+  order_date timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Timestamp when checkout created the order.']
+  total_amount numeric(8,2) [not null, note: 'Computed total amount for the order.']
+  is_paid boolean [not null, default: false, note: 'True after payment and receipt creation complete.']
+
+  Note: 'Order header for a single checkout transaction.'
+
+  indexes {
+    (user_id) [name: 'orders_order_user_id_idx']
+  }
+}
+
+Table orders_orderitem {
+  id bigint [pk, increment, note: 'Primary key for an order line item.']
+  order_id bigint [not null, note: 'Parent order containing this line item.']
+  item_id bigint [not null, note: 'Inventory item purchased on this line.']
+  quantity int [not null, note: 'Purchased quantity; checkout logic requires at least 1.']
+  price_at_purchase numeric(6,2) [not null, note: 'Price snapshot taken at checkout time.']
+
+  Note: 'Associative entity that resolves the conceptual many-to-many relationship between orders and inventory items.'
+
+  indexes {
+    (order_id) [name: 'orders_orderitem_order_id_idx']
+    (item_id) [name: 'orders_orderitem_item_id_idx']
+  }
+}
+
+Table payments_payment {
+  id bigint [pk, increment, note: 'Primary key for a payment record.']
+  order_id bigint [not null, unique, note: 'Exactly one payment can exist per order.']
+  payment_method varchar(10) [not null, default: 'CASH', note: 'Payment method label; current code path uses CASH.']
+  amount_paid numeric(8,2) [not null, note: 'Amount paid for the related order.']
+  payment_time timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Timestamp when the payment was recorded.']
+
+  Note: 'One-to-one payment entity for paid orders.'
+}
+
+Table payments_receipt {
+  id bigint [pk, increment, note: 'Primary key for a receipt record.']
+  order_id bigint [not null, unique, note: 'Exactly one receipt can exist per order.']
+  generated_at timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Timestamp when the receipt record was created.']
+
+  Note: 'One-to-one receipt metadata for a paid order.'
+}
+
+Ref: orders_order.user_id > accounts_customuser.id [delete: cascade]
+Ref: orders_orderitem.order_id > orders_order.id [delete: cascade]
+Ref: orders_orderitem.item_id > inventory_inventory.id [delete: cascade]
+Ref: payments_payment.order_id - orders_order.id [delete: cascade]
+Ref: payments_receipt.order_id - orders_order.id [delete: cascade]
+
+Note: 'Key business constraints represented in SQL but not fully enforceable in DBML include valid roles, user_code regex, non-negative money values, and category enumerations. Paid-order invariants such as payment.amount_paid = order.total_amount would require triggers if enforced at the database layer.'

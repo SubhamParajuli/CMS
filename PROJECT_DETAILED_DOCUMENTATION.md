@@ -1,123 +1,185 @@
 # Canteen Management System - Detailed Project Documentation
 
-Updated: 2026-03-10
+Updated: 2026-03-12
 Workspace: `/home/suhan/CMS`
 
-## 1. Project Purpose
+## 1. Project Summary
 
-This is a Django-based canteen management system built for three main user groups:
+This document presents the technical structure and operational design of a Django-based Canteen Management System intended for campus canteen or POS-style ordering. The system supports role-based access, inventory administration, checkout processing, payment tracking, receipt generation, and Railway deployment with PostgreSQL.
 
-- `students` who browse the menu, add items to cart, check out, and view receipts
-- `teachers` who use the same customer ordering flow as normal users
-- `admins` who manage inventory from a custom dashboard and can also access Django admin
-
-The project combines:
-
-- custom authentication with role-based access
-- inventory and menu management
-- cart and checkout logic
-- payment and receipt persistence
-- static/media image handling
-- automated test coverage for major business rules
-
-## 2. Technology Stack
-
-- Backend framework: Django 5.2.11
-- Language: Python
-- Database: SQLite
-- Image support: Pillow
-- Frontend: Django templates, Bootstrap classes, Font Awesome icons, vanilla JavaScript
-- Local persistence on menu page: `localStorage`
-
-## 3. High-Level Architecture
-
-The project is split into five Django apps:
-
-- `accounts`
-  Handles the custom user model and role logic.
-- `home`
-  Handles authentication pages and the custom admin dashboard.
-- `inventory`
-  Handles menu item records and the customer menu page.
-- `orders`
-  Handles order creation and checkout.
-- `payments`
-  Handles payment rows, receipts, receipt rendering, and payment auditing.
-
-The project-level `canteen_management` package holds global settings, URL routing, and the WSGI/ASGI entry points.
-
-## 4. User Roles and Access Rules
-
-### Admin
-
-Admin users are defined through the custom user model with:
-
-- `role='admin'`, or
-- `is_superuser=True`
-
-The project exposes two admin surfaces:
-
-- `/admin_page/`
-  This is the custom canteen dashboard for inventory management.
-- `/admin/`
-  This is the default Django admin site.
-
-Custom admin routes are protected by the `admin_required` decorator in `home/views.py`.
-
-### Student and Teacher
-
-Students and teachers:
-
-- can register through the public registration page
-- can log in through `/login/`
-- can browse `/menu/`
-- can check out and view their own receipts
-- cannot access the custom admin dashboard
-
-### Registration Policy
-
-Public registration only allows:
+Supported roles:
 
 - `student`
 - `teacher`
+- `admin`
 
-The `admin` role cannot be created from the public registration form.
+Students and teachers use the ordering flow. Admins manage inventory and access analytics and order-monitoring features.
 
-## 5. Data Model
+## 2. Current Repository Layout
 
-### 5.1 CustomUser
+The project uses a root-level Django layout.
 
-Defined in `accounts/models.py`.
+```text
+/home/suhan/CMS/
+├── accounts/
+├── canteen_management/
+├── home/
+├── inventory/
+├── orders/
+├── payments/
+├── public/
+├── data-migration.json
+├── DEPLOYMENT_GUIDE.md
+├── DBMS_VIVA_GUIDE.md
+├── Procfile
+├── README.md
+├── PROJECT_DETAILED_DOCUMENTATION.md
+├── PROJECT_DIRECTORY_DOCUMENTATION.txt
+├── manage.py
+├── requirements.txt
+└── runtime.txt
+```
 
-Important fields:
+Key repository facts:
 
-- `username`
-- `password`
-- `user_code`
-- `role`
-- `is_staff`
-- `is_superuser`
+- `manage.py` is at the repository root.
+- app folders are also at the repository root.
+- the Django configuration package is `canteen_management`.
+- old nested references like `canteen_management/home/...` are outdated.
 
-Business rules:
+## 3. Technology Stack
 
+- Python 3.12.3
+- Django 5.2.11
+- SQLite for default local development and tests
+- PostgreSQL for Railway production
+- WhiteNoise for static file serving in production
+- Gunicorn for Railway runtime
+- Pillow for image uploads
+- Bootstrap and Font Awesome in the templates
+- Vanilla JavaScript for cart interactions and AJAX polling
+
+## 4. Configuration Package
+
+Path:
+
+- `canteen_management/`
+
+Key configuration files:
+
+- `canteen_management/settings.py`
+- `canteen_management/base.py`
+- `canteen_management/local.py`
+- `canteen_management/production.py`
+- `canteen_management/urls.py`
+- `canteen_management/media_views.py`
+- `canteen_management/asgi.py`
+- `canteen_management/wsgi.py`
+
+### 4.1 Settings Split
+
+The project now uses a split settings architecture.
+
+- `settings.py`: selects local or production settings using `DJANGO_ENV`
+- `base.py`: shared apps, middleware, templates, auth model, static, and common utilities
+- `local.py`: local development database, hosts, CSRF origins, and local media path
+- `production.py`: PostgreSQL parsing via `dj-database-url`, WhiteNoise manifest storage, secure cookies, HSTS, SSL redirect, and Railway media path
+
+### 4.2 Important Runtime Facts
+
+- `BASE_DIR` resolves to `/home/suhan/CMS`
+- `AUTH_USER_MODEL = 'accounts.CustomUser'`
+- local static source is `/home/suhan/CMS/public/static`
+- local media path defaults to `/home/suhan/CMS/public/media`
+- production media path is `/app/media`
+- production static files are served through WhiteNoise
+
+## 5. Deployment Files
+
+The project includes the production files Railway expects at the root:
+
+- `requirements.txt`
+- `Procfile`
+- `runtime.txt`
+- `data-migration.json`
+
+### 5.1 requirements.txt
+
+Production dependency set:
+
+- `Django==5.2.11`
+- `dj-database-url==2.3.0`
+- `gunicorn==23.0.0`
+- `psycopg2-binary==2.9.10`
+- `python-dotenv==1.0.1`
+- `whitenoise==6.9.0`
+- `Pillow==12.1.0`
+
+### 5.2 Procfile
+
+The Railway web process runs:
+
+```procfile
+web: python manage.py collectstatic --noinput && gunicorn canteen_management.wsgi:application --bind 0.0.0.0:$PORT --log-file -
+```
+
+### 5.3 runtime.txt
+
+The Python runtime is pinned to:
+
+```text
+python-3.12.3
+```
+
+### 5.4 data-migration.json
+
+This fixture is intended for seeding Railway PostgreSQL after running migrations in production.
+
+## 6. App Responsibilities
+
+### 6.1 accounts
+
+Path:
+
+- `accounts/`
+
+Purpose:
+
+- custom user model
+- role validation
+- 5-digit `user_code` validation
+- admin/staff behavior management
+
+Important file:
+
+- `accounts/models.py`
+
+Key rules implemented:
+
+- valid roles are `admin`, `student`, and `teacher`
+- superusers are forced to use the `admin` role
 - `user_code` must be exactly 5 digits
-- `role` must be one of:
-  - `admin`
-  - `student`
-  - `teacher`
-- admin users are treated as staff
-- superusers are forced to use the admin role
+- admin users are treated as staff users
 
-Why this matters:
+### 6.2 inventory
 
-- the project uses `role` as the main canteen authorization signal
-- Django admin compatibility still depends on `is_staff` and `is_superuser`
+Path:
 
-### 5.2 Inventory
+- `inventory/`
 
-Defined in `inventory/models.py`.
+Purpose:
 
-Fields:
+- stores menu items
+- stores categories, price, quantity, availability, and optional images
+- powers the authenticated menu page
+
+Important files:
+
+- `inventory/models.py`
+- `inventory/views.py`
+- `inventory/templates/menu.html`
+
+Current `Inventory` fields:
 
 - `item_name`
 - `category`
@@ -126,88 +188,201 @@ Fields:
 - `food_image`
 - `is_available`
 
-Meaning:
+### 6.3 orders
 
-- `quantity` is current stock
-- `is_available` controls whether the item appears in the customer menu
+Path:
 
-### 5.3 Order
+- `orders/`
 
-Defined in `orders/models.py`.
+Purpose:
 
-Fields:
+- stores master orders and line items
+- performs transactional checkout
+- updates stock after successful purchase
 
-- `user`
-- `order_date`
-- `total_amount`
-- `is_paid`
+Important files:
 
-Meaning:
+- `orders/models.py`
+- `orders/views.py`
+- `orders/tests.py`
 
-- one order belongs to one user
-- an order is marked paid only after successful payment/receipt creation in checkout
+Implemented order model relationships:
 
-### 5.4 OrderItem
+- `Order.user` links each order to one user
+- `OrderItem.order` links line items to one order
+- `OrderItem.item` links line items to one inventory item
+- checkout uses `transaction.atomic()` and `select_for_update()` to preserve consistency
 
-Defined in `orders/models.py`.
+### 6.4 payments
 
-Fields:
+Path:
 
-- `order`
-- `item`
-- `quantity`
-- `price_at_purchase`
+- `payments/`
 
-Meaning:
+Purpose:
 
-- stores a snapshot of what was bought and at what price
+- stores payment records
+- stores receipts
+- renders paid order receipts
+- provides a management command to audit payment consistency
 
-### 5.5 Payment
+Important files:
 
-Defined in `payments/models.py`.
+- `payments/models.py`
+- `payments/views.py`
+- `payments/templates/receipt.html`
+- `payments/management/commands/payment_consistency.py`
 
-Fields:
+Current design:
 
-- `order`
-- `payment_method`
-- `amount_paid`
-- `payment_time`
+- one `Payment` per `Order`
+- one `Receipt` per `Order`
 
-Current payment method default:
+### 6.5 home
 
-- `CASH`
+Path:
 
-### 5.6 Receipt
+- `home/`
 
-Defined in `payments/models.py`.
+Purpose:
 
-Fields:
+- landing page
+- login and registration
+- logout
+- inventory admin dashboard
+- update item form
+- admin analytics dashboard
+- admin orders dashboard
+- form and widget definitions
 
-- `order`
-- `generated_at`
+Important files:
 
-Meaning:
+- `home/forms.py`
+- `home/views.py`
+- `home/templates/admin.html`
+- `home/templates/update_admin.html`
+- `home/templates/admin_analytics.html`
+- `home/templates/admin_orders.html`
+- `home/templates/widgets/admin_image_input.html`
 
-- each paid order should have exactly one payment and one receipt
+## 7. Main Routes
 
-## 6. Core Request Flows
+Defined in `canteen_management/urls.py`.
 
-### 6.1 Landing Page
+Primary routes:
 
-Route:
+- `/` -> landing page
+- `/login/` -> login page
+- `/register/` -> registration page
+- `/logout/` -> logout action
+- `/menu/` -> authenticated customer menu
+- `/api/inventory/` -> customer inventory JSON snapshot
+- `/checkout/` -> checkout endpoint
+- `/receipt/<order_id>/` -> receipt page
+- `/admin_page/` -> custom inventory dashboard
+- `/admin_page/api/inventory/` -> admin inventory JSON snapshot
+- `/admin_page/analytics/` -> sales analytics page
+- `/admin_page/analytics/api/` -> analytics JSON snapshot
+- `/admin_page/orders/` -> admin orders page
+- `/admin_page/orders/api/` -> admin orders JSON snapshot
+- `/admin_page/update_item/<item_id>/` -> update item page
+- `/admin_page/delete_item/<item_id>/` -> delete item action
+- `/admin/` -> Django admin
 
-- `/`
+## 8. Access Control
 
-Behavior:
+### Admin access
 
-- renders the entry page for the system
-- links users toward login
+Admins are users with:
 
-### 6.2 Login Flow
+- `role='admin'`, or
+- `is_superuser=True`
 
-Route:
+Admin-only views are protected through `admin_required`.
 
-- `/login/`
+Admins can access:
+
+- inventory dashboard
+- analytics dashboard
+- orders dashboard
+- item update and delete actions
+- Django admin
+
+### Student and teacher access
+
+Students and teachers can:
+
+- register through `/register/`
+- log in through `/login/`
+- browse `/menu/`
+- add items to cart
+- check out
+- open their own receipts
+
+They cannot access the custom admin pages.
+
+## 9. Forms and Validation
+
+### 9.1 RegistrationForm
+
+Location:
+
+- `home/forms.py`
+
+Validation rules:
+
+- role must be `student` or `teacher`
+- `user_code` must be unique and exactly 5 digits
+- username must be unique
+- password confirmation must match
+- password uses Django password validators
+
+### 9.2 InventoryItemForm
+
+Location:
+
+- `home/forms.py`
+
+Validation rules implemented:
+
+- item name is required
+- item name must be at least 2 characters long
+- item name must be unique case-insensitively
+- price must be a positive whole rupee amount
+- quantity cannot be negative
+- uploaded image extension must be supported
+- uploaded image size must be 5 MB or smaller
+- if quantity is `0` or less, `is_available` is forced off during cleaning
+
+## 10. Recent UI and Admin Improvements
+
+The current UI behavior reflects recent admin improvements in the templates and forms.
+
+### 10.1 Image input improvements
+
+The custom `AdminImageInput` widget provides:
+
+- `Clear Selection` for new file choices
+- `Remove current image` for existing images
+- file-name display for the selected replacement image
+- dedicated preview behavior on the update page
+
+### 10.2 Silent AJAX refresh
+
+The menu page, analytics page, and orders page use AJAX polling every 10 seconds without displaying visible polling text.
+
+### 10.3 Admin quick edit workflow
+
+The admin inventory dashboard contains:
+
+- inventory table
+- quick edit panel
+- dedicated full update page
+- live dashboard stats
+
+## 11. Core Business Flows
+
+### 11.1 Login flow
 
 View:
 
@@ -215,139 +390,23 @@ View:
 
 Behavior:
 
-1. User submits `username` and `password`.
-2. Django authenticates credentials.
-3. If valid:
-   - canteen admin -> redirect to `/admin_page/`
-   - normal user -> redirect to `/menu/`
-4. If invalid:
-   - error message is shown on the login page
+1. authenticates username and password
+2. redirects admins to `/admin_page/`
+3. redirects normal users to `/menu/`
+4. preserves safe `next` redirects when applicable
 
-Special note:
-
-- a legacy-login fix was added so a bad old user record does not crash when Django updates `last_login`
-
-### 6.3 Registration Flow
-
-Route:
-
-- `/register/`
+### 11.2 Registration flow
 
 View:
 
 - `home.views.register_page`
 
-Form:
-
-- `home.forms.RegistrationForm`
-
-Validation rules:
-
-- role must be `student` or `teacher`
-- `user_code` must be exactly 5 digits
-- `user_code` must be unique
-- username must be unique
-- password is checked with Django password validators
-
-Result:
-
-- valid form creates the user and redirects to `/login/`
-
-### 6.4 Customer Menu Flow
-
-Route:
-
-- `/menu/`
-
-View:
-
-- `inventory.views.inventory_list`
-
 Behavior:
 
-- login required
-- only available items are shown
-- menu page uses JavaScript cart logic stored in `localStorage`
+- creates student or teacher accounts only
+- redirects successful registrations to the login page
 
-UI features:
-
-- quantity increment/decrement controls
-- add-to-cart buttons
-- cart count and total
-- mobile-friendly stacked layout
-- fallback images for missing uploads
-- safer cart rendering with DOM APIs instead of HTML string templates
-
-### 6.5 Checkout Flow
-
-Route:
-
-- `/checkout/`
-
-View:
-
-- `orders.views.checkout`
-
-Method:
-
-- POST only
-
-Payload:
-
-- JSON body containing a `cart` object
-
-Important checkout rules:
-
-- cart must not be empty
-- quantities must be integers
-- quantity must be at least `1`
-- each item must still exist
-- each item must still be available
-- stock must be sufficient
-
-Database behavior:
-
-- inventory rows are locked during validation
-- the full operation runs inside a transaction
-- the system creates:
-  - `Order`
-  - `OrderItem` rows
-  - `Payment`
-  - `Receipt`
-- stock is decremented only within the same atomic flow
-- if any step fails, the entire transaction rolls back
-
-Successful response:
-
-- JSON response containing `success: true` and `order_id`
-
-### 6.6 Receipt Flow
-
-Route:
-
-- `/receipt/<order_id>/`
-
-View:
-
-- `payments.views.receipt_view`
-
-Rules:
-
-- login required
-- order must belong to the current user
-- order must already be paid
-- payment row must exist
-- receipt row must exist
-
-This view no longer auto-creates missing receipts. Missing payment or receipt data is treated as an integrity problem.
-
-### 6.7 Admin Inventory Flow
-
-Routes:
-
-- `/admin_page/`
-- `/admin_page/update_item/<item_id>/`
-- `/admin_page/delete_item/<item_id>/`
+### 11.3 Inventory admin flow
 
 Views:
 
@@ -355,267 +414,146 @@ Views:
 - `home.views.admin_update_item`
 - `home.views.admin_delete_item`
 
-Rules:
+Behavior:
 
-- admin-only access
-- anonymous users are redirected to `/login/`
-- non-admin logged-in users are redirected to `/menu/`
-- delete is POST-only
-- CSRF token is required for delete and form submissions
+- add new items
+- update existing items
+- delete items through POST-only action
+- filter and sort inventory
+- expose JSON snapshot data for silent refresh
 
-Dashboard features:
+### 11.4 Checkout flow
 
-- inventory table
-- add item form
-- edit item page
-- delete action with confirmation
-- quick stats card showing:
-  - total items
-  - available items
-  - low stock items
+View:
 
-## 7. Forms and Validation
+- `orders.views.checkout`
 
-### 7.1 RegistrationForm
+Behavior:
 
-Located in `home/forms.py`.
+1. receives cart JSON
+2. normalizes and validates quantities
+3. locks inventory rows with `select_for_update()`
+4. creates the `Order`
+5. creates each `OrderItem`
+6. decreases item stock
+7. creates `Payment`
+8. creates `Receipt`
+9. marks the order as paid
 
-Purpose:
+This flow is wrapped inside `transaction.atomic()` so partial order states are avoided.
 
-- protects registration from invalid roles, duplicate usernames, duplicate user codes, and weak password input
+### 11.5 Analytics flow
 
-### 7.2 InventoryItemForm
+Views:
 
-Located in `home/forms.py`.
+- `home.views.admin_sales_analytics`
+- `home.views.admin_sales_analytics_snapshot`
 
-Purpose:
+Behavior:
 
-- validates admin inventory create/update operations
+- aggregates daily, weekly, and monthly sales
+- calculates best-selling items
+- calculates top customers
+- exposes JSON snapshot responses for live UI refresh
 
-Validation includes:
+## 12. Static and Media Handling
 
-- non-empty item name
-- non-negative price
-- non-negative quantity
-- image extension checks
-- image content type checks
-- image size limit of 5 MB
+### Local development
 
-## 8. Static and Media Handling
+- static source directory: `/home/suhan/CMS/public/static`
+- media upload directory: `/home/suhan/CMS/public/media`
 
-Current file strategy:
+### Production on Railway
 
-- static assets live under `canteen_management/public/static/`
-- uploaded files live under `canteen_management/public/media/`
+- static files are collected to `STATIC_ROOT`
+- WhiteNoise serves static files
+- media files are stored under `/app/media`
+- missing media in production is served via `canteen_management.media_views.serve_production_media`
 
-Why this matters:
+## 13. Railway Deployment Notes
 
-- uploaded user/admin images are no longer mixed with static files
-- templates use `item.food_image.url` when an image exists
-- templates fall back to a static placeholder when no image exists or when an image fails to load
+This codebase is configured for Railway without Docker.
 
-Current URLs:
+Production requirements use the same Railway variable names documented in `README.md` and `DEPLOYMENT_GUIDE.md`.
 
-- static files -> `/static/`
-- media files -> `/media/`
+Required production environment variables:
 
-## 9. Frontend and UI Behavior
-
-### Landing and Auth Pages
-
-Templates:
-
-- `home/templates/index.html`
-- `home/templates/login.html`
-- `home/templates/register.html`
-
-Purpose:
-
-- entry experience, login, and registration
-
-### Admin Dashboard UI
-
-Template:
-
-- `home/templates/admin.html`
-
-Features:
-
-- inventory table
-- inline action buttons
-- add-item form
-- server-side validation error display
-- quick stats card
-- flash messages
-
-### Admin Update UI
-
-Template:
-
-- `home/templates/update_admin.html`
-
-Features:
-
-- edit existing inventory data
-- preview current image
-- edit availability status
-
-### Menu UI
-
-Template:
-
-- `inventory/templates/menu.html`
-
-Features:
-
-- responsive product grid
-- cart sidebar
-- stacked mobile behavior on smaller screens
-- JS cart rendering
-- fallback image support
-
-## 10. Security and Integrity Improvements Already Applied
-
-These are important because they shape how the system now behaves.
-
-### Access Control
-
-- admin dashboard access is restricted
-- delete action is not exposed through GET anymore
-
-### Checkout Integrity
-
-- invalid quantities are blocked
-- stock is validated before final commit
-- partial order writes are prevented through transactions
-
-### Payment Integrity
-
-- payment and receipt creation happen in the checkout transaction
-- receipt view requires real existing payment and receipt records
-
-### Legacy Data Protection
-
-- old blank admin roles were backfilled
-- old invalid or blank user codes were backfilled
-- login no longer crashes on legacy `last_login` updates
-
-### Frontend Safety
-
-- cart rows are created with DOM nodes, reducing XSS risk from client-side cart data
-- menu image rendering has fallback behavior
-
-## 11. Management Command
-
-Command:
-
-```bash
-python manage.py payment_consistency
+```env
+DJANGO_ENV=production
+DJANGO_SECRET_KEY=<paste-a-new-random-secret>
+DJANGO_ALLOWED_HOSTS=<your-service>.up.railway.app,.railway.app
+DJANGO_CSRF_TRUSTED_ORIGINS=https://<your-service>.up.railway.app
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+DB_CONN_MAX_AGE=600
+DB_SSL_REQUIRE=True
+DJANGO_MEDIA_URL=/media/
+DJANGO_MEDIA_ROOT=/app/media
+DJANGO_SECURE_SSL_REDIRECT=True
+DJANGO_SECURE_HSTS_SECONDS=31536000
+DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+DJANGO_SECURE_HSTS_PRELOAD=True
 ```
 
-Purpose:
+Optional but useful:
 
-- audit the consistency between paid orders, payments, and receipts
-
-Useful options:
-
-```bash
-python manage.py payment_consistency --repair
-python manage.py payment_consistency --fail-on-issues
+```env
+RAILWAY_PUBLIC_DOMAIN=<your-service>.up.railway.app
 ```
 
-What it checks:
+Deployment sequence:
 
-- paid orders missing payments
-- paid orders missing receipts
-- payment amount mismatches
-- unpaid orders that still have payment rows
-- unpaid orders that still have receipt rows
+1. Provision Railway PostgreSQL.
+2. Attach a Railway volume mounted at `/app/media`.
+3. Add the production environment variables shown above.
+4. Let Railway deploy using `Procfile`, `runtime.txt`, and `requirements.txt`.
+5. Run the production database setup commands.
 
-## 12. Tests
-
-Current test modules:
-
-- `accounts/tests.py`
-- `home/tests.py`
-- `inventory/tests.py`
-- `orders/tests.py`
-- `payments/tests.py`
-
-Coverage includes:
-
-- custom user role behavior
-- admin-only route protection
-- login redirect behavior
-- legacy admin login safety
-- registration validation
-- inventory form validation
-- image and media rendering
-- safer menu rendering
-- mobile layout markers
-- checkout rollback behavior
-- payment/receipt integrity
-- management command behavior
-
-At the time of the latest verified run, the suite passed with 36 tests.
-
-## 13. Database and Migration Notes
-
-The project currently uses SQLite:
-
-- `canteen_management/db.sqlite3`
-
-Important migrations in `accounts`:
-
-- `0002_backfill_roles_and_add_role_constraint`
-- `0003_backfill_invalid_user_codes`
-
-Why they matter:
-
-- they clean old bad user data so the current validation rules and login flow work reliably
-
-If teammates pull fresh changes that include migrations, they should run:
+Required production commands:
 
 ```bash
 python manage.py migrate
+python manage.py loaddata data-migration.json
+python manage.py check --deploy
 ```
 
-## 14. Current Development Characteristics
+Production media note:
 
-This project is currently configured as a development-focused Django project:
+- database fixture data can be loaded from `data-migration.json`
+- binary image files are not stored inside the fixture
+- existing menu item images must be re-uploaded from the live admin UI after deployment so they are stored in the mounted Railway volume at `/app/media`
 
-- `DEBUG=True`
-- SQLite database
-- committed local secret key in settings
-- empty `ALLOWED_HOSTS`
+## 14. Verified State
 
-That is acceptable for local academic/team development, but it is not a production-ready deployment setup.
+Validated on 2026-03-12:
 
-## 15. Main Files to Study First
+- `python manage.py check` passes
+- `python manage.py makemigrations --check` reports no changes
+- `python manage.py test` passes with 51 tests
+- main admin, menu, orders, analytics, and receipt flows are covered by tests
 
-For someone trying to understand the project quickly, read these in order:
+## 15. Important Files For Ongoing Maintenance
 
-1. `canteen_management/canteen_management/settings.py`
-2. `canteen_management/canteen_management/urls.py`
-3. `canteen_management/accounts/models.py`
-4. `canteen_management/home/forms.py`
-5. `canteen_management/home/views.py`
-6. `canteen_management/inventory/models.py`
-7. `canteen_management/inventory/templates/menu.html`
-8. `canteen_management/orders/models.py`
-9. `canteen_management/orders/views.py`
-10. `canteen_management/payments/models.py`
-11. `canteen_management/payments/views.py`
-12. `canteen_management/payments/management/commands/payment_consistency.py`
-
-## 16. Short Project Summary
-
-This project is now a role-based Django canteen system with:
-
-- protected admin inventory management
-- validated user registration
-- responsive customer ordering UI
-- atomic checkout
-- explicit payment and receipt records
-- integrity audit tooling
-- coverage for the main bugs that were fixed during the recent cleanup work
+- `manage.py`
+- `canteen_management/settings.py`
+- `canteen_management/base.py`
+- `canteen_management/local.py`
+- `canteen_management/production.py`
+- `canteen_management/urls.py`
+- `canteen_management/media_views.py`
+- `accounts/models.py`
+- `home/forms.py`
+- `home/views.py`
+- `home/templates/admin.html`
+- `home/templates/update_admin.html`
+- `home/templates/admin_analytics.html`
+- `home/templates/admin_orders.html`
+- `home/templates/widgets/admin_image_input.html`
+- `inventory/models.py`
+- `inventory/views.py`
+- `inventory/templates/menu.html`
+- `orders/models.py`
+- `orders/views.py`
+- `payments/models.py`
+- `payments/views.py`
+- `payments/templates/receipt.html`
+- `payments/management/commands/payment_consistency.py`

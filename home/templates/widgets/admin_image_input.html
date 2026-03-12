@@ -1,0 +1,184 @@
+<div class="admin-image-widget">
+  <style>
+    .admin-image-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .admin-image-widget__picker {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 0.5rem;
+      background: #fff;
+    }
+
+    .admin-image-widget__button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.475rem 0.85rem;
+      border: 1px solid #0d6efd;
+      border-radius: 0.45rem;
+      background: #0d6efd;
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .admin-image-widget__button--secondary {
+      border-color: #6c757d;
+      background: #fff;
+      color: #495057;
+    }
+
+    .admin-image-widget__button:hover {
+      background: #0b5ed7;
+      border-color: #0b5ed7;
+    }
+
+    .admin-image-widget__button--secondary:hover {
+      background: #f1f3f5;
+      border-color: #5c636a;
+      color: #343a40;
+    }
+
+    .admin-image-widget__file-name {
+      color: #6c757d;
+      font-size: 0.92rem;
+      word-break: break-word;
+    }
+
+    .admin-image-widget__native-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .admin-image-widget__hidden-checkbox {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+
+  {% if widget.is_initial %}
+  <div class="admin-image-widget__current mb-2">
+    <div class="small text-muted mb-1">{{ widget.initial_text }}</div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <a href="{{ widget.value.url }}" target="_blank" rel="noopener">{{ widget.display_name }}</a>
+      {% if not widget.required %}
+      <input
+        type="checkbox"
+        name="{{ widget.checkbox_name }}"
+        id="{{ widget.checkbox_id }}"
+        class="admin-image-widget__hidden-checkbox"
+        data-image-clear-toggle
+      >
+      <button
+        type="button"
+        class="admin-image-widget__button admin-image-widget__button--secondary"
+        data-image-clear-button
+        data-clear-label="{{ widget.clear_checkbox_label }}"
+        data-undo-label="Undo remove"
+      >
+        {{ widget.clear_checkbox_label }}
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="admin-image-widget__input">
+    {% if widget.is_initial %}
+    <div class="small text-muted mb-1">{{ widget.input_text }}</div>
+    {% endif %}
+    <div class="admin-image-widget__picker">
+      <input
+        type="{{ widget.type }}"
+        name="{{ widget.name }}"
+        class="admin-image-widget__native-input"
+        data-image-input
+        {% include "django/forms/widgets/attrs.html" %}
+      >
+      <label for="{{ widget.attrs.id }}" class="admin-image-widget__button">
+        Choose Image
+      </label>
+      <button type="button" class="admin-image-widget__button admin-image-widget__button--secondary" data-image-reset>
+        Clear Selection
+      </button>
+      <span class="admin-image-widget__file-name" data-file-name>No new file selected</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const widget = document.currentScript.previousElementSibling;
+    if (!widget || widget.dataset.imageWidgetBound === 'true') {
+      return;
+    }
+
+    widget.dataset.imageWidgetBound = 'true';
+
+    const fileInput = widget.querySelector('[data-image-input]');
+    const fileName = widget.querySelector('[data-file-name]');
+    const resetButton = widget.querySelector('[data-image-reset]');
+    const clearToggle = widget.querySelector('[data-image-clear-toggle]');
+    const clearButton = widget.querySelector('[data-image-clear-button]');
+
+    function syncFileName() {
+      if (!fileName || !fileInput) {
+        return;
+      }
+      fileName.textContent = fileInput.files.length ? fileInput.files[0].name : 'No new file selected';
+    }
+
+    function syncClearButton() {
+      if (!clearButton || !clearToggle) {
+        return;
+      }
+      clearButton.textContent = clearToggle.checked
+        ? (clearButton.dataset.undoLabel || 'Undo remove')
+        : (clearButton.dataset.clearLabel || 'Remove current image');
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener('change', () => {
+        if (clearToggle) {
+          clearToggle.checked = false;
+          syncClearButton();
+        }
+        syncFileName();
+      });
+      syncFileName();
+    }
+
+    if (resetButton && fileInput) {
+      resetButton.addEventListener('click', () => {
+        fileInput.value = '';
+        syncFileName();
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    if (clearButton && clearToggle) {
+      clearButton.addEventListener('click', () => {
+        clearToggle.checked = !clearToggle.checked;
+        syncClearButton();
+      });
+      syncClearButton();
+    }
+  })();
+</script>

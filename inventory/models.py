@@ -1,12 +1,4 @@
-from pathlib import Path
-import uuid
-
 from django.db import models
-
-
-def inventory_image_path(instance, filename):
-    ext = Path(filename).suffix.lower()
-    return f"inventory_images/{uuid.uuid4().hex}{ext}"
 
 # Create your models here.
 
@@ -21,7 +13,7 @@ class Inventory(models.Model):
     ))
     price=models.DecimalField(max_digits=6,decimal_places=2)
     quantity=models.PositiveIntegerField()
-    food_image=models.ImageField(upload_to=inventory_image_path, null=True, blank=True)
+    food_image=models.ImageField(upload_to='inventory_images/', null=True, blank=True)
     is_available=models.BooleanField(default=True)
 
     def __str__(self):

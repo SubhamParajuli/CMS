@@ -13,7 +13,7 @@
 
         <div class="mb-3">
             <h2 class="text-center animate-fade-in stagger-1">
-                <i class="fa fa-user-circle me-2" style="color:var(--accent)"></i>Log In
+                <i class="fa fa-user-circle me-2 auth-title-icon" style="color:var(--accent)"></i>Log In
             </h2>
             <hr />
 
@@ -30,7 +30,7 @@
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="fa fa-lock text-muted"></i></span>
                     <input type="password" name="password" class="form-control" id="login-password" placeholder="Enter your password" required>
-                    <button class="btn btn-outline-secondary" type="button" id="login-toggle" aria-label="Toggle password visibility">
+                    <button class="btn btn-outline-secondary password-toggle" type="button" id="login-toggle" aria-label="Toggle password visibility">
                         <i class="fa fa-eye"></i>
                     </button>
                 </div>
@@ -47,13 +47,19 @@
                 </button>
             </div>
 
-            {% if messages %}
-            <div class="alert alert-danger mt-3 w-100 animate-shake" id="login-error">
-                <i class="fa fa-exclamation-circle me-1"></i>
+                {% if messages %}
                 {% for message in messages %}
-                    <span>{{ message }}</span>
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} mt-3 w-100 {% if message.tags == 'error' %}animate-shake{% endif %}" id="login-message">
+                        <i class="fa 
+                            {% if message.tags == 'success' %}
+                                fa-check-circle
+                            {% elif message.tags == 'error' %}
+                                fa-exclamation-circle
+                            {% endif %}
+                            me-1"></i>
+                        <span>{{ message }}</span>
+                    </div>
                 {% endfor %}
-            </div>
             {% endif %}
         </div>
     </form>

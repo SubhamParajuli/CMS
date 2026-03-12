@@ -1,13 +1,26 @@
-{% extends "index.html" %} {% block start %}
+{% extends "index.html" %}
+{% block start %}
 <div class="container-fluid">
-  <!-- Header -->
-  <div class="row bg-dark text-white py-3 mb-4 animate-slide-down">
-    <div class="col-md-6">
+  <div class="row bg-dark text-white py-3 mb-4 animate-slide-down align-items-center g-3">
+    <div class="col-lg-4 col-md-6">
       <h3 class="mb-0">
         <i class="fa fa-utensils"></i> Canteen Admin Dashboard
       </h3>
     </div>
-    <div class="col-md-6 text-end">
+    <div class="col-lg-5 col-md-6">
+      <div class="admin-nav d-flex flex-wrap gap-2 justify-content-md-center justify-content-start">
+        <a href="{% url 'admin_page' %}" class="btn btn-sm {% if active_admin_page == 'inventory' %}btn-warning text-dark{% else %}btn-outline-light{% endif %}">
+          <i class="fa fa-list me-1"></i>Inventory
+        </a>
+        <a href="{% url 'admin_sales_analytics' %}" class="btn btn-sm {% if active_admin_page == 'analytics' %}btn-warning text-dark{% else %}btn-outline-light{% endif %}">
+          <i class="fa fa-chart-line me-1"></i>Sales
+        </a>
+        <a href="{% url 'admin_orders_page' %}" class="btn btn-sm {% if active_admin_page == 'orders' %}btn-warning text-dark{% else %}btn-outline-light{% endif %}">
+          <i class="fa fa-receipt me-1"></i>Orders
+        </a>
+      </div>
+    </div>
+    <div class="col-lg-3 text-lg-end">
       <span class="me-3">Welcome, <strong>{{ user.username }}</strong></span>
       <form method="post" action="{% url 'logout' %}" class="d-inline">
         {% csrf_token %}
@@ -18,351 +31,296 @@
     </div>
   </div>
 
-  <div class="row">
-    <!-- Left Side - Inventory Table -->
-    <div class="col-lg-8 mb-4 animate-fade-in-up stagger-1">
-      <div class="card shadow-sm admin-card">
+  <div class="row g-4 align-items-start">
+    <div class="col-lg-8 inventory-column animate-fade-in-up stagger-1">
+      <div class="card shadow-sm admin-card border-0">
         <div class="card-header bg-primary text-white">
-          <h5 class="mb-0"><i class="fa fa-list"></i> Inventory Items</h5>
+          <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0"><i class="fa fa-list"></i> Inventory Items</h5>
+          </div>
         </div>
         <div class="card-body">
           {% if messages %}
-              {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-hide"
-                   role="alert">
-                  {{ message }}
-                  <button type="button"
-                          class="btn-close"
-                          data-bs-dismiss="alert"></button>
-              </div>
-              {% endfor %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-hide" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
           {% endif %}
 
-          <div class="d-flex flex-wrap gap-2 mb-3">
-            <a
-              class="btn btn-sm admin-filter-chip {% if current_filter == 'all' %}btn-dark{% else %}btn-outline-dark{% endif %}"
-              href="?filter=all&sort={{ current_sort }}&dir={{ current_dir }}"
-            >
-              All
-            </a>
-            <a
-              class="btn btn-sm admin-filter-chip {% if current_filter == 'low_stock' %}btn-warning{% else %}btn-outline-warning{% endif %}"
-              href="?filter=low_stock&sort={{ current_sort }}&dir={{ current_dir }}"
-            >
-              <i class="fa fa-exclamation-triangle me-1"></i>Low Stock
-            </a>
-            <a
-              class="btn btn-sm admin-filter-chip {% if current_filter == 'unavailable' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
-              href="?filter=unavailable&sort={{ current_sort }}&dir={{ current_dir }}"
-            >
-              Unavailable
-            </a>
+          <div class="inventory-scroll pe-1">
+            <div class="d-flex flex-wrap gap-2 mb-3 inventory-toolbar">
+              <a class="btn btn-sm admin-filter-chip {% if current_filter == 'all' %}btn-dark{% else %}btn-outline-dark{% endif %}" href="?filter=all&sort={{ current_sort }}&dir={{ current_dir }}">All</a>
+              <a class="btn btn-sm admin-filter-chip {% if current_filter == 'low_stock' %}btn-warning{% else %}btn-outline-warning{% endif %}" href="?filter=low_stock&sort={{ current_sort }}&dir={{ current_dir }}">
+                <i class="fa fa-exclamation-triangle me-1"></i>Low Stock
+              </a>
+              <a class="btn btn-sm admin-filter-chip {% if current_filter == 'unavailable' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?filter=unavailable&sort={{ current_sort }}&dir={{ current_dir }}">Unavailable</a>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover admin-table align-middle">
+                <thead class="table-dark sticky-top">
+                  <tr>
+                    <th>
+                      <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=name&dir={% if current_sort == 'name' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
+                        <i class="fa fa-tag"></i> Item Name
+                        {% if current_sort == 'name' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
+                      </a>
+                    </th>
+                    <th>
+                      <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=category&dir={% if current_sort == 'category' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
+                        <i class="fa fa-folder"></i> Category
+                        {% if current_sort == 'category' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
+                      </a>
+                    </th>
+                    <th>
+                      <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=price&dir={% if current_sort == 'price' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
+                        <i class="fa fa-dollar-sign"></i> Price
+                        {% if current_sort == 'price' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
+                      </a>
+                    </th>
+                    <th>
+                      <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=quantity&dir={% if current_sort == 'quantity' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
+                        <i class="fa fa-boxes"></i> Quantity
+                        {% if current_sort == 'quantity' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
+                      </a>
+                    </th>
+                    <th>
+                      <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=status&dir={% if current_sort == 'status' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
+                        <i class="fa fa-check-circle"></i> Status
+                        {% if current_sort == 'status' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
+                      </a>
+                    </th>
+                    <th><i class="fa fa-cog"></i> Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in page_obj %}
+                  <tr class="admin-table-row animate-fade-in" data-item-row-id="{{ item.id }}" style="animation-delay:{{ forloop.counter0 }}00ms">
+                    <td class="fw-semibold item-name-cell">{{ item.item_name }}</td>
+                    <td><span class="badge bg-light text-dark border item-category-cell">{{ item.get_category_display }}</span></td>
+                    <td class="item-price-cell">Rs {{ item.price }}</td>
+                    <td class="item-quantity-cell">
+                      {% if item.quantity < 10 %}
+                      <span class="badge bg-warning text-dark low-stock-badge"><i class="fa fa-exclamation-triangle me-1"></i>{{ item.quantity }}</span>
+                      {% else %}
+                      {{ item.quantity }}
+                      {% endif %}
+                    </td>
+                    <td class="item-status-cell">
+                      {% if item.is_available %}
+                      <span class="badge bg-success"><i class="fa fa-check me-1"></i>Available</span>
+                      {% else %}
+                      <span class="badge bg-secondary">Unavailable</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="admin-action-group">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary edit-inline"
+                          data-item-id="{{ item.id }}"
+                          data-update-url="{% url 'admin_update_item' item.id %}"
+                          data-name="{{ item.item_name }}"
+                          data-category="{{ item.category }}"
+                          data-price="{{ item.price }}"
+                          data-quantity="{{ item.quantity }}"
+                          data-available="{{ item.is_available }}"
+                          data-image-url="{% if item.food_image %}{{ item.food_image.url }}{% endif %}"
+                        >
+                          <i class="fa fa-pen"></i> Quick Edit
+                        </button>
+                        <a href="{% url 'admin_update_item' item.id %}" class="btn btn-sm btn-outline-secondary">
+                          <i class="fa fa-external-link-alt"></i> Open
+                        </a>
+                        <form method="post" action="{% url 'admin_delete_item' item.id %}">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Are you sure you want to delete this item?');">
+                            <i class="fa fa-trash"></i> Delete
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      <i class="fa fa-inbox fa-3x d-block mb-2"></i>
+                      No inventory items found. Add your first item.
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="mt-3">
+              <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter={{ current_filter }}&sort={{ current_sort }}&dir={{ current_dir }}">Previous</a></li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&filter={{ current_filter }}&sort={{ current_sort }}&dir={{ current_dir }}">Next</a></li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+              </ul>
+            </nav>
+            {% endif %}
           </div>
-
-          <div class="table-responsive">
-            <table class="table table-hover admin-table">
-              <thead class="table-dark">
-                <tr>
-                  <th>
-                    <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=name&dir={% if current_sort == 'name' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
-                      <i class="fa fa-tag"></i> Item Name
-                      {% if current_sort == 'name' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
-                    </a>
-                  </th>
-                  <th>
-                    <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=category&dir={% if current_sort == 'category' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
-                      <i class="fa fa-folder"></i> Category
-                      {% if current_sort == 'category' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
-                    </a>
-                  </th>
-                  <th>
-                    <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=price&dir={% if current_sort == 'price' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
-                      <i class="fa fa-dollar-sign"></i> Price
-                      {% if current_sort == 'price' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
-                    </a>
-                  </th>
-                  <th>
-                    <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=quantity&dir={% if current_sort == 'quantity' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
-                      <i class="fa fa-boxes"></i> Quantity
-                      {% if current_sort == 'quantity' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
-                    </a>
-                  </th>
-                  <th>
-                    <a class="text-white text-decoration-none" href="?filter={{ current_filter }}&sort=status&dir={% if current_sort == 'status' and current_dir == 'asc' %}desc{% else %}asc{% endif %}">
-                      <i class="fa fa-check-circle"></i> Status
-                      {% if current_sort == 'status' %}<i class="fa fa-sort-{{ current_dir }} ms-1" style="font-size:0.7rem"></i>{% endif %}
-                    </a>
-                  </th>
-                  <th><i class="fa fa-cog"></i> Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in page_obj %}
-                <tr class="admin-table-row animate-fade-in" style="animation-delay:{{ forloop.counter0 }}00ms">
-                  <td class="fw-semibold">{{ item.item_name }}</td>
-
-                  <td>
-                    <span class="badge bg-light text-dark border">{{ item.get_category_display }}</span>
-                  </td>
-
-                  <td>Rs. {{ item.price }}</td>
-
-                  <td>
-                    {% if item.quantity < 10 %}
-                    <span class="badge bg-warning text-dark low-stock-badge">
-                      <i class="fa fa-exclamation-triangle me-1"></i>{{ item.quantity }}
-                    </span>
-                    {% else %} {{ item.quantity }} {% endif %}
-                  </td>
-
-                  <td>
-                    {% if item.is_available %}
-                    <span class="badge bg-success"><i class="fa fa-check me-1"></i>Available</span>
-                    {% else %}
-                    <span class="badge bg-secondary">Unavailable</span>
-                    {% endif %}
-                  </td>
-
-                  <td>
-                    <div class="admin-action-group">
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-primary edit-inline"
-                      data-item-id="{{ item.id }}"
-                      data-update-url="{% url 'admin_update_item' item.id %}"
-                      data-name="{{ item.item_name }}"
-                      data-category="{{ item.category }}"
-                      data-price="{{ item.price }}"
-                      data-quantity="{{ item.quantity }}"
-                      data-available="{{ item.is_available }}"
-                    >
-                      <i class="fa fa-pen"></i> Quick Edit
-                    </button>
-                    <a
-                      href="{% url 'admin_update_item' item.id %}"
-                      class="btn btn-sm btn-outline-secondary"
-                    >
-                      <i class="fa fa-external-link-alt"></i> Open
-                    </a>
-
-                    <form
-                      method="post"
-                      action="{% url 'admin_delete_item' item.id %}"
-                    >
-                      {% csrf_token %}
-                      <button
-                        type="submit"
-                        class="btn btn-sm btn-outline-danger w-100"
-                        onclick="return confirm('Are you sure you want to delete this item?');"
-                      >
-                        <i class="fa fa-trash"></i> Delete
-                      </button>
-                    </form>
-                    </div>
-                  </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="6" class="text-center text-muted py-4">
-                    <i class="fa fa-inbox fa-3x d-block mb-2"></i>
-                    No inventory items found. Add your first item!
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          {% if page_obj.paginator.num_pages > 1 %}
-          <nav class="mt-3">
-            <ul class="pagination pagination-sm mb-0">
-              {% if page_obj.has_previous %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter={{ current_filter }}&sort={{ current_sort }}&dir={{ current_dir }}">Previous</a>
-              </li>
-              {% else %}
-              <li class="page-item disabled"><span class="page-link">Previous</span></li>
-              {% endif %}
-
-              <li class="page-item disabled">
-                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-              </li>
-
-              {% if page_obj.has_next %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}&filter={{ current_filter }}&sort={{ current_sort }}&dir={{ current_dir }}">Next</a>
-              </li>
-              {% else %}
-              <li class="page-item disabled"><span class="page-link">Next</span></li>
-              {% endif %}
-            </ul>
-          </nav>
-          {% endif %}
         </div>
       </div>
     </div>
 
-    <!-- Right Side - Add/Update Form -->
-    <div class="col-lg-4">
-      <div class="card shadow-sm admin-card animate-fade-in-up stagger-2">
-        <div class="card-header bg-success text-white">
-          <h5 class="mb-0"><i class="fa fa-plus-circle"></i> Add New Item</h5>
-        </div>
-        <div class="card-body">
-          {% if item_form.non_field_errors %}
-          <div class="alert alert-danger">
-            {% for error in item_form.non_field_errors %}
+    <div class="col-lg-4 animate-fade-in-up stagger-2">
+      <div class="admin-sidebar-scroll">
+        <div class="card shadow-sm admin-card border-0 mb-3">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fa fa-plus-circle"></i> Add New Item</h5>
+          </div>
+          <div class="card-body">
+            {% if item_form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in item_form.non_field_errors %}
               <div>{{ error }}</div>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          <form
-            method="POST"
-            action="{% url 'admin_page' %}"
-            enctype="multipart/form-data"
-          >
-            {% csrf_token %}
-
-            <div class="mb-3">
-              <label for="{{ item_form.item_name.id_for_label }}" class="form-label">
-                <i class="fa fa-utensils"></i> Item Name
-              </label>
-              {{ item_form.item_name }}
-              {% for error in item_form.item_name.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
               {% endfor %}
             </div>
+            {% endif %}
 
-            <div class="mb-3">
-              <label for="{{ item_form.category.id_for_label }}" class="form-label">
-                <i class="fa fa-folder"></i> Category
-              </label>
-              {{ item_form.category }}
-              {% for error in item_form.category.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ item_form.price.id_for_label }}" class="form-label">
-                <i class="fa fa-dollar-sign"></i> Price (Rs.)
-              </label>
-              {{ item_form.price }}
-              {% for error in item_form.price.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ item_form.quantity.id_for_label }}" class="form-label">
-                <i class="fa fa-boxes"></i> Quantity
-              </label>
-              {{ item_form.quantity }}
-              {% for error in item_form.quantity.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
-
-            <div class="mb-3">
-              <label for="{{ item_form.food_image.id_for_label }}" class="form-label">
-                <i class="fa fa-image"></i> Food Image
-              </label>
-              {{ item_form.food_image }}
-              {% for error in item_form.food_image.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-              <small class="form-text text-muted"
-                >Optional: Upload an image of the item</small
-              >
-            </div>
-
-            <div class="mb-4">
-              <div class="form-check">
-                {{ item_form.is_available }}
-                <label class="form-check-label" for="{{ item_form.is_available.id_for_label }}">
-                  <i class="fa fa-check-circle"></i> Mark as Available
-                </label>
+            <form method="POST" action="{% url 'admin_page' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label for="{{ item_form.item_name.id_for_label }}" class="form-label"><i class="fa fa-utensils"></i> Item Name</label>
+                {{ item_form.item_name }}
+                {% for error in item_form.item_name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
               </div>
-              {% for error in item_form.is_available.errors %}
-              <div class="text-danger small mt-1">{{ error }}</div>
-              {% endfor %}
-            </div>
 
-            <button type="submit" class="btn btn-success w-100">
-              <i class="fa fa-save"></i> Add Item
-            </button>
-          </form>
-        </div>
-      </div>
+              <div class="mb-3">
+                <label for="{{ item_form.category.id_for_label }}" class="form-label"><i class="fa fa-folder"></i> Category</label>
+                {{ item_form.category }}
+                {% for error in item_form.category.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+              </div>
 
-      <!-- Quick Edit Card -->
-      <div class="card shadow-sm mb-3 admin-card animate-fade-in-up stagger-4" id="quick-edit-card">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-          <h6 class="mb-0"><i class="fa fa-pen"></i> Quick Edit</h6>
-          <button type="button" class="btn btn-sm btn-light" id="quick-edit-close">
-            <i class="fa fa-times"></i>
-          </button>
-        </div>
-        <div class="card-body">
-          <div id="quick-edit-placeholder" class="text-muted small">
-            Select an item from the table to edit it here.
-          </div>
-          <form id="quick-edit-form" method="POST" enctype="multipart/form-data" style="display:none; opacity:0;" class="quick-edit-animated">
-            {% csrf_token %}
-            <div class="mb-2">
-              <label class="form-label">Item Name</label>
-              <input type="text" name="item_name" class="form-control" required>
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Category</label>
-              <select name="category" class="form-select" required>
-                <option value="main_course">Main Course</option>
-                <option value="snacks">Snacks</option>
-                <option value="beverages">Beverages</option>
-                <option value="desserts">Desserts</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Price</label>
-              <input type="number" name="price" class="form-control" step="0.01" min="0" required>
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Quantity</label>
-              <input type="number" name="quantity" class="form-control" min="0" required>
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Food Image (optional)</label>
-              <input type="file" name="food_image" class="form-control" accept="image/*">
-            </div>
-            <div class="form-check mb-3">
-              <input class="form-check-input" type="checkbox" name="is_available" id="quick-edit-available">
-              <label class="form-check-label" for="quick-edit-available">Mark as Available</label>
-            </div>
-            <button type="submit" class="btn btn-secondary w-100">Update Item</button>
-          </form>
-        </div>
-      </div>
+              <div class="mb-3">
+                <label for="{{ item_form.price.id_for_label }}" class="form-label"><i class="fa fa-dollar-sign"></i> Price (Rs.)</label>
+                {{ item_form.price }}
+                {% for error in item_form.price.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+              </div>
 
-      <!-- Quick Stats Card -->
-      <div class="card shadow-sm mt-3 admin-card animate-fade-in-up stagger-5">
-        <div class="card-header bg-info text-white">
-          <h6 class="mb-0"><i class="fa fa-chart-bar"></i> Quick Stats</h6>
+              <div class="mb-3">
+                <label for="{{ item_form.quantity.id_for_label }}" class="form-label"><i class="fa fa-boxes"></i> Quantity</label>
+                {{ item_form.quantity }}
+                {% for error in item_form.quantity.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+              </div>
+
+              <div class="mb-3">
+                <label for="{{ item_form.food_image.id_for_label }}" class="form-label"><i class="fa fa-image"></i> Food Image</label>
+                {{ item_form.food_image }}
+                <small class="form-text text-muted">Optional: JPG, PNG, WEBP or GIF up to 5 MB.</small>
+                {% for error in item_form.food_image.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                <div class="image-preview-card d-none mt-3" id="add-item-preview-wrap">
+                  <span class="image-preview-card__label">New image preview</span>
+                  <img src="" alt="New item preview" id="add-item-preview-image" class="image-preview-card__image">
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="form-check">
+                  {{ item_form.is_available }}
+                  <label class="form-check-label" for="{{ item_form.is_available.id_for_label }}">Mark as Available</label>
+                </div>
+                {% for error in item_form.is_available.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+              </div>
+
+              <button type="submit" class="btn btn-success w-100"><i class="fa fa-save"></i> Add Item</button>
+            </form>
+          </div>
         </div>
-        <div class="card-body">
-          <div class="d-flex justify-content-between mb-2">
-            <span><i class="fa fa-box"></i> Total Items:</span>
-            <strong class="stat-number" data-target="{{ stats.total_items }}">0</strong>
+
+        <div class="card shadow-sm admin-card border-0 mb-3" id="quick-edit-card">
+          <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fa fa-pen"></i> Quick Edit</h6>
+            <button type="button" class="btn btn-sm btn-light" id="quick-edit-close"><i class="fa fa-times"></i></button>
           </div>
-          <div class="d-flex justify-content-between mb-2">
-            <span><i class="fa fa-check text-success"></i> Available:</span>
-            <strong class="text-success stat-number" data-target="{{ stats.available_items }}">0</strong>
+          <div class="card-body">
+            <div id="quick-edit-placeholder" class="text-muted small">Select an item from the table to edit it here.</div>
+            <form id="quick-edit-form" method="POST" enctype="multipart/form-data" style="display:none; opacity:0;" class="quick-edit-animated">
+              {% csrf_token %}
+              <div class="image-preview-card d-none mb-3" id="quick-edit-preview-wrap">
+                <span class="image-preview-card__label">Current or replacement preview</span>
+                <img src="" alt="Selected item image" id="quick-edit-preview-image" class="image-preview-card__image">
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Item Name</label>
+                <input type="text" name="item_name" class="form-control" required>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select" required>
+                  <option value="main_course">Main Course</option>
+                  <option value="snacks">Snacks</option>
+                  <option value="beverages">Beverages</option>
+                  <option value="desserts">Desserts</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Price</label>
+                <input type="number" name="price" class="form-control" step="1" min="1" inputmode="numeric" required>
+                <div class="form-hint">Whole rupees only.</div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Quantity</label>
+                <input type="number" name="quantity" class="form-control" min="0" required>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Food Image (optional)</label>
+                <div class="admin-image-widget">
+                  <div class="admin-image-widget__picker">
+                    <input type="file" name="food_image" id="quick-edit-food-image" class="admin-image-widget__native-input" accept="image/*">
+                    <label for="quick-edit-food-image" class="admin-image-widget__button">Choose Image</label>
+                    <button type="button" class="admin-image-widget__button admin-image-widget__button--secondary" id="quick-edit-clear-image">Clear Selection</button>
+                    <span class="admin-image-widget__file-name" id="quick-edit-file-name">No new file selected</span>
+                  </div>
+                </div>
+                <div class="form-hint">Leave empty to keep the current image.</div>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_available" id="quick-edit-available">
+                <label class="form-check-label" for="quick-edit-available">Mark as Available</label>
+              </div>
+              <button type="submit" class="btn btn-secondary w-100">Update Item</button>
+            </form>
           </div>
-          <div class="d-flex justify-content-between">
-            <span><i class="fa fa-exclamation-triangle text-warning"></i> Low
-              Stock (&lt; {{ low_stock_threshold }}):</span>
-            <strong class="text-warning stat-number" data-target="{{ stats.low_stock_items }}">0</strong>
+        </div>
+
+        <div class="card shadow-sm admin-card border-0">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="fa fa-chart-bar"></i> Quick Stats</h6>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+              <span><i class="fa fa-box"></i> Total Items:</span>
+              <strong class="stat-number" id="inventory-total-items" data-target="{{ stats.total_items }}">0</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span><i class="fa fa-check text-success"></i> Available:</span>
+              <strong class="text-success stat-number" id="inventory-available-items" data-target="{{ stats.available_items }}">0</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <span><i class="fa fa-exclamation-triangle text-warning"></i> Low Stock (&lt; {{ low_stock_threshold }}):</span>
+              <strong class="text-warning stat-number" id="inventory-low-stock-items" data-target="{{ stats.low_stock_items }}">0</strong>
+            </div>
+            <hr>
+            <div class="d-grid gap-2">
+              <a href="{% url 'admin_sales_analytics' %}" class="btn btn-outline-primary btn-sm"><i class="fa fa-chart-line me-1"></i>Open Sales Analytics</a>
+              <a href="{% url 'admin_orders_page' %}" class="btn btn-outline-secondary btn-sm"><i class="fa fa-receipt me-1"></i>View User Orders</a>
+            </div>
           </div>
         </div>
       </div>
@@ -371,13 +329,50 @@
 </div>
 
 <style>
-  /* Admin-specific styles */
   .admin-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: none;
   }
+
   .admin-card:hover {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .inventory-column,
+  .admin-sidebar-scroll {
+    position: sticky;
+    top: 1rem;
+    align-self: flex-start;
+  }
+
+  .inventory-scroll {
+    max-height: calc(100vh - 12.5rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .inventory-scroll::-webkit-scrollbar,
+  .admin-sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .inventory-scroll::-webkit-scrollbar-thumb,
+  .admin-sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(108, 117, 125, 0.45);
+    border-radius: 999px;
+  }
+
+  .inventory-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #fff;
+    padding-bottom: 0.5rem;
+  }
+
+  .admin-sidebar-scroll {
+    max-height: calc(100vh - 7rem);
+    overflow-y: auto;
+    padding-right: 0.25rem;
   }
 
   .admin-filter-chip {
@@ -388,6 +383,7 @@
   .admin-table tbody tr {
     transition: background-color 0.2s ease, transform 0.15s ease;
   }
+
   .admin-table tbody tr:hover {
     background-color: rgba(29, 78, 216, 0.04);
   }
@@ -396,14 +392,125 @@
     animation: pulse 2s ease-in-out infinite;
   }
 
-  /* Quick edit slide animation */
+  .admin-action-group {
+    min-width: 120px;
+  }
+
   .quick-edit-animated {
     transition: opacity 0.3s ease, transform 0.3s ease;
     transform: translateY(8px);
   }
+
   .quick-edit-animated.is-visible {
     opacity: 1 !important;
     transform: translateY(0);
+  }
+
+  .form-hint {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+  }
+
+  .admin-image-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .admin-image-widget__picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.5rem;
+    background: #fff;
+  }
+
+  .admin-image-widget__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.475rem 0.85rem;
+    border: 1px solid #0d6efd;
+    border-radius: 0.45rem;
+    background: #0d6efd;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .admin-image-widget__button--secondary {
+    border-color: #6c757d;
+    background: #fff;
+    color: #495057;
+  }
+
+  .admin-image-widget__button:hover {
+    background: #0b5ed7;
+    border-color: #0b5ed7;
+  }
+
+  .admin-image-widget__button--secondary:hover {
+    background: #f1f3f5;
+    border-color: #5c636a;
+    color: #343a40;
+  }
+
+  .admin-image-widget__file-name {
+    color: #6c757d;
+    font-size: 0.92rem;
+    word-break: break-word;
+  }
+
+  .admin-image-widget__native-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .image-preview-card {
+    background: #f8f9fa;
+    border: 1px dashed #ced4da;
+    border-radius: 8px;
+    padding: 0.75rem;
+  }
+
+  .image-preview-card__label {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .image-preview-card__image {
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(108, 117, 125, 0.2);
+    background: #fff;
+  }
+
+  @media (max-width: 991.98px) {
+    .inventory-column,
+    .admin-sidebar-scroll {
+      position: static;
+      max-height: none;
+    }
+
+    .inventory-scroll {
+      max-height: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -418,74 +525,267 @@
 </style>
 
 <script>
-    // Auto-hide alerts
-    setTimeout(function () {
-        let alerts = document.querySelectorAll('.auto-hide');
-        alerts.forEach(function (alert) {
-            let bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        });
-    }, 3000);
-
-    // Quick Edit with slide animation
-    const quickEditForm = document.getElementById('quick-edit-form');
-    const quickEditPlaceholder = document.getElementById('quick-edit-placeholder');
-    const quickEditClose = document.getElementById('quick-edit-close');
-
-    document.querySelectorAll('.edit-inline').forEach(button => {
-        button.addEventListener('click', () => {
-            const updateUrl = button.dataset.updateUrl;
-            if (!quickEditForm || !updateUrl) {
-                return;
-            }
-
-            quickEditForm.action = updateUrl;
-            quickEditForm.querySelector('[name="item_name"]').value = button.dataset.name || '';
-            quickEditForm.querySelector('[name="category"]').value = button.dataset.category || 'other';
-            quickEditForm.querySelector('[name="price"]').value = button.dataset.price || '';
-            quickEditForm.querySelector('[name="quantity"]').value = button.dataset.quantity || '';
-            quickEditForm.querySelector('[name="is_available"]').checked = button.dataset.available === 'True';
-
-            quickEditForm.style.display = 'block';
-            quickEditPlaceholder.style.display = 'none';
-            // Trigger reflow then animate
-            quickEditForm.offsetHeight;
-            quickEditForm.classList.add('is-visible');
-            quickEditForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+  setTimeout(function () {
+    let alerts = document.querySelectorAll('.auto-hide');
+    alerts.forEach(function (alert) {
+      let bsAlert = new bootstrap.Alert(alert);
+      bsAlert.close();
     });
+  }, 3000);
 
-    if (quickEditClose) {
-        quickEditClose.addEventListener('click', () => {
-            if (quickEditForm) {
-                quickEditForm.classList.remove('is-visible');
-                setTimeout(() => {
-                    quickEditForm.style.display = 'none';
-                    quickEditForm.reset();
-                }, 300);
-            }
-            if (quickEditPlaceholder) {
-                quickEditPlaceholder.style.display = 'block';
-            }
-        });
+  const quickEditForm = document.getElementById('quick-edit-form');
+  const quickEditPlaceholder = document.getElementById('quick-edit-placeholder');
+  const quickEditClose = document.getElementById('quick-edit-close');
+  const quickEditPreviewWrap = document.getElementById('quick-edit-preview-wrap');
+  const quickEditPreviewImage = document.getElementById('quick-edit-preview-image');
+  const quickEditImageInput = quickEditForm ? quickEditForm.querySelector('[name="food_image"]') : null;
+  const quickEditFileName = document.getElementById('quick-edit-file-name');
+  const quickEditClearImageButton = document.getElementById('quick-edit-clear-image');
+  const addItemImageInput = document.querySelector('form[action="{% url "admin_page" %}"] input[name="food_image"]');
+  const addItemPreviewWrap = document.getElementById('add-item-preview-wrap');
+  const addItemPreviewImage = document.getElementById('add-item-preview-image');
+  const adminInventorySnapshotUrl = '{% url "admin_inventory_snapshot" %}';
+  const ADMIN_INVENTORY_POLL_MS = 10000;
+
+  function resetQuickEditPreview() {
+    if (!quickEditPreviewWrap || !quickEditPreviewImage) {
+      return;
     }
 
-    // Animated stat counters
-    document.querySelectorAll('.stat-number').forEach(el => {
-        const target = parseInt(el.dataset.target) || 0;
-        if (target === 0) return;
-        const duration = 800;
-        const start = performance.now();
-        function tick(now) {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            // ease-out curve
-            const eased = 1 - Math.pow(1 - progress, 3);
-            el.textContent = Math.round(eased * target);
-            if (progress < 1) requestAnimationFrame(tick);
+    const originalSrc = quickEditPreviewImage.dataset.originalSrc;
+    if (originalSrc) {
+      quickEditPreviewImage.src = originalSrc;
+      quickEditPreviewWrap.classList.remove('d-none');
+      return;
+    }
+
+    quickEditPreviewImage.removeAttribute('src');
+    quickEditPreviewWrap.classList.add('d-none');
+  }
+
+  function syncAddItemPreview() {
+    if (!addItemImageInput || !addItemPreviewWrap || !addItemPreviewImage) {
+      return;
+    }
+
+    const [file] = addItemImageInput.files || [];
+    if (!file || !file.type.startsWith('image/')) {
+      addItemPreviewImage.removeAttribute('src');
+      addItemPreviewWrap.classList.add('d-none');
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(file);
+    addItemPreviewImage.src = nextPreviewUrl;
+    addItemPreviewWrap.classList.remove('d-none');
+    addItemPreviewImage.onload = () => URL.revokeObjectURL(nextPreviewUrl);
+  }
+
+  document.querySelectorAll('.edit-inline').forEach(button => {
+    button.addEventListener('click', () => {
+      const updateUrl = button.dataset.updateUrl;
+      if (!quickEditForm || !updateUrl) {
+        return;
+      }
+
+      quickEditForm.action = updateUrl;
+      quickEditForm.querySelector('[name="item_name"]').value = button.dataset.name || '';
+      quickEditForm.querySelector('[name="category"]').value = button.dataset.category || 'other';
+      quickEditForm.querySelector('[name="price"]').value = button.dataset.price || '';
+      quickEditForm.querySelector('[name="quantity"]').value = button.dataset.quantity || '';
+      quickEditForm.querySelector('[name="is_available"]').checked = button.dataset.available === 'True';
+      quickEditForm.querySelector('[name="food_image"]').value = '';
+      if (quickEditFileName) {
+        quickEditFileName.textContent = 'No new file selected';
+      }
+
+      if (quickEditPreviewWrap && quickEditPreviewImage) {
+        if (button.dataset.imageUrl) {
+          quickEditPreviewImage.src = button.dataset.imageUrl;
+          quickEditPreviewImage.dataset.originalSrc = button.dataset.imageUrl;
+          quickEditPreviewWrap.classList.remove('d-none');
+        } else {
+          quickEditPreviewImage.dataset.originalSrc = '';
+          quickEditPreviewImage.removeAttribute('src');
+          quickEditPreviewWrap.classList.add('d-none');
         }
-        requestAnimationFrame(tick);
+      }
+
+      quickEditForm.style.display = 'block';
+      quickEditPlaceholder.style.display = 'none';
+      quickEditForm.offsetHeight;
+      quickEditForm.classList.add('is-visible');
+      quickEditForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  });
+
+  if (quickEditClose) {
+    quickEditClose.addEventListener('click', () => {
+      if (quickEditForm) {
+        quickEditForm.classList.remove('is-visible');
+        setTimeout(() => {
+          quickEditForm.style.display = 'none';
+          quickEditForm.reset();
+          if (quickEditFileName) {
+            quickEditFileName.textContent = 'No new file selected';
+          }
+          if (quickEditPreviewImage) {
+            quickEditPreviewImage.dataset.originalSrc = '';
+          }
+          resetQuickEditPreview();
+        }, 300);
+      }
+      if (quickEditPlaceholder) {
+        quickEditPlaceholder.style.display = 'block';
+      }
+    });
+  }
+
+  if (quickEditImageInput) {
+    quickEditImageInput.addEventListener('change', () => {
+      const [file] = quickEditImageInput.files || [];
+
+      if (quickEditFileName) {
+        quickEditFileName.textContent = file ? file.name : 'No new file selected';
+      }
+
+      if (!file || !file.type.startsWith('image/')) {
+        resetQuickEditPreview();
+        return;
+      }
+
+      const nextPreviewUrl = URL.createObjectURL(file);
+      if (quickEditPreviewImage && quickEditPreviewWrap) {
+        quickEditPreviewImage.src = nextPreviewUrl;
+        quickEditPreviewWrap.classList.remove('d-none');
+        quickEditPreviewImage.onload = () => URL.revokeObjectURL(nextPreviewUrl);
+      }
+    });
+  }
+
+  if (quickEditClearImageButton && quickEditImageInput) {
+    quickEditClearImageButton.addEventListener('click', () => {
+      quickEditImageInput.value = '';
+      if (quickEditFileName) {
+        quickEditFileName.textContent = 'No new file selected';
+      }
+      resetQuickEditPreview();
+    });
+  }
+
+  if (addItemImageInput && addItemPreviewWrap && addItemPreviewImage) {
+    addItemImageInput.addEventListener('change', syncAddItemPreview);
+  }
+
+  document.querySelectorAll('.stat-number').forEach(el => {
+    const target = parseInt(el.dataset.target, 10) || 0;
+    if (target === 0) {
+      return;
+    }
+    const duration = 800;
+    const start = performance.now();
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target);
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+
+  function buildQuantityMarkup(quantity) {
+    if (quantity < 10) {
+      return `<span class="badge bg-warning text-dark low-stock-badge"><i class="fa fa-exclamation-triangle me-1"></i>${quantity}</span>`;
+    }
+    return String(quantity);
+  }
+
+  function buildStatusMarkup(isAvailable) {
+    if (isAvailable) {
+      return '<span class="badge bg-success"><i class="fa fa-check me-1"></i>Available</span>';
+    }
+    return '<span class="badge bg-secondary">Unavailable</span>';
+  }
+
+  async function pollAdminInventorySnapshot() {
+    try {
+      const queryString = window.location.search || '';
+      const response = await fetch(`${adminInventorySnapshotUrl}${queryString}`, {
+        headers: {
+          Accept: 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      if (payload.stats) {
+        const totalItems = document.getElementById('inventory-total-items');
+        const availableItems = document.getElementById('inventory-available-items');
+        const lowStockItems = document.getElementById('inventory-low-stock-items');
+        if (totalItems) {
+          totalItems.textContent = payload.stats.total_items;
+        }
+        if (availableItems) {
+          availableItems.textContent = payload.stats.available_items;
+        }
+        if (lowStockItems) {
+          lowStockItems.textContent = payload.stats.low_stock_items;
+        }
+      }
+
+      if (!Array.isArray(payload.items)) {
+        return;
+      }
+
+      payload.items.forEach(item => {
+        const row = document.querySelector(`[data-item-row-id="${item.id}"]`);
+        if (!row) {
+          return;
+        }
+
+        const nameCell = row.querySelector('.item-name-cell');
+        const categoryCell = row.querySelector('.item-category-cell');
+        const priceCell = row.querySelector('.item-price-cell');
+        const quantityCell = row.querySelector('.item-quantity-cell');
+        const statusCell = row.querySelector('.item-status-cell');
+        const editButton = row.querySelector('.edit-inline');
+
+        if (nameCell) {
+          nameCell.textContent = item.item_name;
+        }
+        if (categoryCell) {
+          categoryCell.textContent = item.category_label;
+        }
+        if (priceCell) {
+          priceCell.textContent = `Rs ${item.price}`;
+        }
+        if (quantityCell) {
+          quantityCell.innerHTML = buildQuantityMarkup(item.quantity);
+        }
+        if (statusCell) {
+          statusCell.innerHTML = buildStatusMarkup(item.is_available);
+        }
+        if (editButton) {
+          editButton.dataset.name = item.item_name;
+          editButton.dataset.category = item.category;
+          editButton.dataset.price = item.price;
+          editButton.dataset.quantity = item.quantity;
+          editButton.dataset.available = item.is_available ? 'True' : 'False';
+        }
+      });
+    } catch (error) {
+      console.error('Admin inventory polling failed', error);
+    }
+  }
+
+  window.setInterval(pollAdminInventorySnapshot, ADMIN_INVENTORY_POLL_MS);
 </script>
 
 {% endblock %}

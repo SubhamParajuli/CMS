@@ -1,419 +1,316 @@
 CANTEEN MANAGEMENT SYSTEM - PROJECT DIRECTORY DOCUMENTATION
-Updated: 2026-03-10
+Updated: 2026-03-12
 Workspace: /home/suhan/CMS
 
 ============================================================
 1) ROOT OVERVIEW
 ============================================================
 
-Important root files and folders:
+Current root files and folders:
+- .env.example
 - .gitignore
-- PROJECT_DIRECTORY_DOCUMENTATION.txt
-- PROJECT_DETAILED_DOCUMENTATION.md
 - README.md
+- PROJECT_DETAILED_DOCUMENTATION.md
+- PROJECT_DIRECTORY_DOCUMENTATION.txt
+- DEPLOYMENT_GUIDE.md
+- DBMS_VIVA_GUIDE.md
 - requirements.txt
+- Procfile
+- runtime.txt
+- data-migration.json
+- manage.py
 - canteen_management/
-- img/
-- myenv/
-
-Notes:
-- `myenv/` is the local virtual environment.
-- `img/` contains source/reference food images outside the Django app.
-- The real Django project lives inside `canteen_management/`.
-
-============================================================
-2) DJANGO PROJECT ROOT
-============================================================
-
-Path:
-- canteen_management/
-
-Contents:
 - accounts/
-- canteen_management/
-- db.sqlite3
 - home/
 - inventory/
-- manage.py
 - orders/
 - payments/
 - public/
+- myenv/
+- img/
+
+Important notes:
+- The project uses a root-level Django layout.
+- `manage.py` and app directories are directly under `/home/suhan/CMS`.
+- The Django configuration package remains `canteen_management/`.
+- Production deployment is prepared for Railway without Docker.
+
+============================================================
+2) DJANGO ENTRY POINTS
+============================================================
+
+Root command file:
+- manage.py
 
 Purpose:
-- `manage.py` is the Django command entry point.
-- `db.sqlite3` is the local SQLite development database.
-- `public/static/` stores static assets.
-- `public/media/` stores uploaded media files.
+- Django command entry point
+- sets `DJANGO_SETTINGS_MODULE` to `canteen_management.settings`
+- runs from the repository root
+
+Common commands:
+- `python manage.py runserver`
+- `python manage.py check`
+- `python manage.py makemigrations --check`
+- `python manage.py test`
+- `python manage.py collectstatic --noinput`
 
 ============================================================
 3) CONFIG PACKAGE
 ============================================================
 
 Path:
-- canteen_management/canteen_management/
+- canteen_management/
 
 Files:
 - __init__.py
-- asgi.py
 - settings.py
+- base.py
+- local.py
+- production.py
 - urls.py
+- media_views.py
+- asgi.py
 - wsgi.py
 
-Current settings summary:
-- Django version in use: 5.2.11
-- Database: SQLite (`db.sqlite3`)
-- Custom user model: `accounts.CustomUser`
-- Time zone: `Asia/Kathmandu`
-- Static URL: `/static/`
-- Static root: `BASE_DIR / staticfiles`
-- Static source directory: `BASE_DIR / public / static`
-- Media URL: `/media/`
-- Media root: `BASE_DIR / public / media`
-- Login URL: `/login/`
+Key facts:
+- `settings.py` switches settings based on `DJANGO_ENV`
+- `base.py` contains shared apps, middleware, auth, templates, and static defaults
+- `local.py` supports SQLite by default and optional local PostgreSQL
+- `production.py` configures PostgreSQL, WhiteNoise, secure cookies, SSL, and HSTS
+- local media defaults to `/home/suhan/CMS/public/media`
+- production media is configured as `/app/media`
+- login URL is `/login/`
+- custom user model is `accounts.CustomUser`
 
 Main URL routes:
-- `/` -> landing page
-- `/login/` -> application login
-- `/register/` -> registration
-- `/logout/` -> logout
-- `/menu/` -> customer menu/cart page
-- `/checkout/` -> checkout API
-- `/receipt/<order_id>/` -> receipt page
-- `/admin_page/` -> custom canteen admin dashboard
-- `/admin_page/update_item/<item_id>/` -> edit inventory item
-- `/admin_page/delete_item/<item_id>/` -> delete inventory item
-- `/admin/` -> Django admin site
+- `/`
+- `/login/`
+- `/register/`
+- `/logout/`
+- `/menu/`
+- `/api/inventory/`
+- `/checkout/`
+- `/receipt/<order_id>/`
+- `/admin_page/`
+- `/admin_page/api/inventory/`
+- `/admin_page/analytics/`
+- `/admin_page/analytics/api/`
+- `/admin_page/orders/`
+- `/admin_page/orders/api/`
+- `/admin_page/update_item/<item_id>/`
+- `/admin_page/delete_item/<item_id>/`
+- `/admin/`
 
 ============================================================
-4) ACCOUNTS APP
+4) DEPLOYMENT FILES
+============================================================
+
+Files:
+- requirements.txt
+- Procfile
+- runtime.txt
+- data-migration.json
+- .env.example
+- .gitignore
+
+Purpose:
+- `requirements.txt` defines Django and Railway dependencies
+- `Procfile` starts Gunicorn after collecting static files
+- `runtime.txt` pins Python 3.12.3
+- `data-migration.json` seeds production PostgreSQL data
+- `.env.example` documents local and Railway environment variables
+- `.gitignore` excludes `.env`, media, static build output, and virtual environments
+
+============================================================
+5) ACCOUNTS APP
 ============================================================
 
 Path:
-- canteen_management/accounts/
-
-Files:
-- admin.py
-- apps.py
-- models.py
-- tests.py
-- views.py
-- migrations/
-
-Key responsibilities:
-- Defines the custom user model.
-- Stores user role and 5-digit user code.
-- Supports admin, student, and teacher roles.
-- Registers `CustomUser` in Django admin.
-
-Important model behavior:
-- `CustomUser` extends `AbstractUser`.
-- Extra fields:
-  - `user_code` (unique 5-digit string)
-  - `role` (`admin`, `student`, `teacher`)
-- `is_canteen_admin` property treats admin role and superuser as canteen admins.
-- Validation enforces valid role and valid 5-digit `user_code`.
-- `save()` keeps admin users marked as staff.
-- `save()` skips full validation when Django only updates `last_login`.
-
-Migrations:
-- `0001_initial.py` creates the custom user model.
-- `0002_backfill_roles_and_add_role_constraint.py` repairs blank roles and adds a role constraint.
-- `0003_backfill_invalid_user_codes.py` repairs blank or invalid legacy user codes.
-
-Tests cover:
-- superuser defaults
-- admin role behavior
-
-============================================================
-5) HOME APP
-============================================================
-
-Path:
-- canteen_management/home/
-
-Files:
-- admin.py
-- apps.py
-- forms.py
-- models.py
-- tests.py
-- views.py
-- templates/
-
-Responsibilities:
-- Public landing page
-- login
-- registration
-- logout
-- custom canteen admin dashboard
-- inventory create/update/delete from the custom dashboard
+- accounts/
 
 Important files:
-- `forms.py`
-  - `RegistrationForm`
-  - `InventoryItemForm`
-- `views.py`
-  - `index_page`
-  - `login_page`
-  - `register_page`
-  - `logout_view`
-  - `admin_page`
-  - `admin_update_item`
-  - `admin_delete_item`
-  - `admin_required` decorator
-- `templates/index.html`
-- `templates/login.html`
-- `templates/register.html`
-- `templates/admin.html`
-- `templates/update_admin.html`
-
-Current admin dashboard behavior:
-- Only canteen admins can access it.
-- Uses form validation for create and update operations.
-- Delete is POST-only and CSRF-protected.
-- Dashboard stats are computed from the database:
-  - total items
-  - available items
-  - low-stock items
-- Success messages appear only after successful POST actions.
-
-Tests cover:
-- admin access control
-- legacy admin login
-- registration validation
-- inventory form validation
-- admin dashboard stats and behavior
-
-============================================================
-6) INVENTORY APP
-============================================================
-
-Path:
-- canteen_management/inventory/
-
-Files:
-- admin.py
-- apps.py
-- models.py
-- tests.py
-- views.py
-- templates/menu.html
-- migrations/
-
-Responsibilities:
-- Defines food item records shown on the customer menu.
-- Provides the authenticated customer menu page.
-
-Model:
-- `Inventory`
-  - `item_name`
-  - `category`
-  - `price`
-  - `quantity`
-  - `food_image`
-  - `is_available`
-
-View:
-- `inventory_list`
-  - requires login
-  - shows only `is_available=True` items
-
-Template:
-- `menu.html`
-  - customer-facing menu grid
-  - localStorage-backed cart
-  - client-side quantity controls
-  - checkout trigger to `/checkout/`
-  - media image rendering with static fallback
-  - safer DOM rendering for cart items
-  - stacked mobile layout for smaller screens
-
-Tests cover:
-- anonymous redirect to `/login/`
-- static/media separation
-- image fallback behavior
-- safer cart rendering
-- mobile layout markers
-
-============================================================
-7) ORDERS APP
-============================================================
-
-Path:
-- canteen_management/orders/
-
-Files:
-- admin.py
-- apps.py
-- models.py
-- tests.py
-- views.py
-- migrations/
-
-Responsibilities:
-- Stores orders and order items.
-- Handles checkout logic.
-
-Models:
-- `Order`
-  - user
-  - order_date
-  - total_amount
-  - is_paid
-- `OrderItem`
-  - order
-  - item
-  - quantity
-  - price_at_purchase
-
-Checkout behavior:
-- requires login
-- requires POST
-- expects JSON body with cart data
-- validates full cart before committing data
-- rejects invalid or negative quantities
-- locks inventory rows during validation
-- creates order, order items, payment, and receipt atomically
-- reduces stock and flips `is_available` to false when quantity reaches zero
-
-Tests cover:
-- auth redirect
-- negative quantity rejection
-- rollback on stock failure
-- rollback on payment creation failure
-- successful order, payment, and receipt creation
-
-============================================================
-8) PAYMENTS APP
-============================================================
-
-Path:
-- canteen_management/payments/
-
-Files:
-- admin.py
-- apps.py
-- models.py
-- tests.py
-- views.py
-- templates/receipt.html
-- migrations/
-- management/commands/payment_consistency.py
-
-Responsibilities:
-- Stores payment records and receipts.
-- Renders the receipt page.
-- Provides a payment consistency audit/repair command.
-
-Models:
-- `Payment`
-  - one-to-one with `Order`
-  - payment_method
-  - amount_paid
-  - payment_time
-- `Receipt`
-  - one-to-one with `Order`
-  - generated_at
-
-View:
-- `receipt_view`
-  - requires login
-  - only returns receipts for the current user
-  - requires an already paid order
-  - requires existing `Payment` and `Receipt` rows
-
-Management command:
-- `payment_consistency`
-  - audits missing payments
-  - audits missing receipts
-  - audits mismatched payment amounts
-  - audits unpaid orders that still have payment/receipt rows
-  - supports `--repair`
-  - supports `--fail-on-issues`
-
-Tests cover:
-- strict receipt view behavior
-- anonymous receipt redirect
-- audit output
-- repair behavior
-- fail-on-issues mode
-
-============================================================
-9) STATIC AND MEDIA ASSETS
-============================================================
-
-Path:
-- canteen_management/public/static/
-- canteen_management/public/media/
-
-Static usage:
-- background image
-- fallback inventory images
-- menu placeholder images
-
-Media usage:
-- uploaded inventory images stored under:
-  - `public/media/inventory_images/`
-
-Current separation:
-- static files are served from `/static/`
-- uploaded files are served from `/media/`
-
-============================================================
-10) TESTING STATUS
-============================================================
-
-Current test modules:
+- accounts/models.py
+- accounts/admin.py
 - accounts/tests.py
+- accounts/migrations/
+
+Responsibilities:
+- custom user model
+- role logic
+- 5-digit `user_code` validation
+- admin/staff enforcement for admins
+
+============================================================
+6) HOME APP
+============================================================
+
+Path:
+- home/
+
+Important files:
+- home/forms.py
+- home/views.py
 - home/tests.py
+- home/templates/index.html
+- home/templates/login.html
+- home/templates/register.html
+- home/templates/admin.html
+- home/templates/admin_analytics.html
+- home/templates/admin_orders.html
+- home/templates/update_admin.html
+- home/templates/widgets/admin_image_input.html
+
+Responsibilities:
+- landing page
+- login and registration
+- logout
+- admin inventory dashboard
+- analytics page
+- orders page
+- update item page
+- custom inventory image input widget
+
+Recent UI notes:
+- admin inventory forms support `Clear Selection`
+- update forms support `Remove current image`
+- admin pages support silent AJAX refresh through JSON snapshot endpoints
+
+============================================================
+7) INVENTORY APP
+============================================================
+
+Path:
+- inventory/
+
+Important files:
+- inventory/models.py
+- inventory/views.py
 - inventory/tests.py
+- inventory/templates/menu.html
+- inventory/migrations/
+
+Responsibilities:
+- stores menu items
+- exposes authenticated menu page
+- provides customer inventory JSON snapshots
+
+Menu behavior notes:
+- only available items with quantity greater than zero are shown to customers
+- AJAX polling refreshes stock silently every 10 seconds
+- fallback static image is used when no uploaded image exists
+
+============================================================
+8) ORDERS APP
+============================================================
+
+Path:
+- orders/
+
+Important files:
+- orders/models.py
+- orders/views.py
+- orders/admin.py
 - orders/tests.py
+- orders/migrations/
+
+Responsibilities:
+- stores orders
+- stores order items
+- handles checkout processing
+
+Transaction notes:
+- checkout uses `transaction.atomic()`
+- inventory rows are locked with `select_for_update()`
+- payment and receipt creation happen inside the same logical transaction
+
+============================================================
+9) PAYMENTS APP
+============================================================
+
+Path:
+- payments/
+
+Important files:
+- payments/models.py
+- payments/views.py
 - payments/tests.py
+- payments/templates/receipt.html
+- payments/management/commands/payment_consistency.py
 
-Current coverage focus:
-- authentication and redirects
-- admin authorization
-- registration validation
-- inventory form validation
-- checkout atomicity
-- payment consistency
-- receipt integrity
-- menu template safety and responsiveness
+Responsibilities:
+- payment records
+- receipt records
+- receipt rendering
+- consistency audit and repair command
 
 ============================================================
-11) IMPORTANT RECENT FIXES REFLECTED IN THIS STRUCTURE
+10) STATIC AND MEDIA FILES
 ============================================================
 
-This project structure now reflects these implemented changes:
-- admin routes protected by admin-only access checks
-- delete action changed from GET to POST
-- checkout made atomic and validated server-side
-- payment and receipt consistency enforced
-- payment consistency management command added
-- role validation and legacy user cleanup added
-- login redirects fixed to use `/login/`
-- form-based validation added for registration and inventory
-- static and media storage separated
-- menu rendering hardened and image fallback added
-- mobile menu/cart layout improved
-- dashboard stats made dynamic
-- timezone changed to `Asia/Kathmandu`
-- legacy admin login fixed for bad historical user data
+Path:
+- public/
+
+Contents:
+- public/static/
+- public/media/
+
+Usage:
+- `public/static/` stores CSS and static image assets for local development
+- `public/media/` stores uploaded images locally
+- Railway production uses a persistent volume mounted at `/app/media`
 
 ============================================================
-12) FILES TO READ FIRST
+11) DOCUMENTATION FILES
 ============================================================
 
-If someone new joins the project, start here:
-- `canteen_management/canteen_management/settings.py`
-- `canteen_management/canteen_management/urls.py`
-- `canteen_management/accounts/models.py`
-- `canteen_management/home/views.py`
-- `canteen_management/home/forms.py`
-- `canteen_management/inventory/models.py`
-- `canteen_management/orders/views.py`
-- `canteen_management/orders/models.py`
-- `canteen_management/payments/models.py`
-- `canteen_management/payments/views.py`
-- `canteen_management/payments/management/commands/payment_consistency.py`
-- `PROJECT_DETAILED_DOCUMENTATION.md`
+Files:
+- README.md
+- PROJECT_DETAILED_DOCUMENTATION.md
+- PROJECT_DIRECTORY_DOCUMENTATION.txt
+- DEPLOYMENT_GUIDE.md
+- DBMS_VIVA_GUIDE.md
+
+Purpose:
+- describe the current layout
+- document the split settings structure
+- explain Railway deployment and PostgreSQL usage
+- support university viva preparation
+
+============================================================
+12) VERIFIED STATE
+============================================================
+
+Verified on 2026-03-12:
+- `python manage.py check` passes
+- `python manage.py makemigrations --check` reports no changes
+- `python manage.py test` passes with 51 tests
+- admin inventory, admin analytics, admin orders, menu, checkout, and receipt flows are covered by tests
+
+============================================================
+13) MOST IMPORTANT FILES FOR FUTURE CHANGES
+============================================================
+
+- manage.py
+- canteen_management/settings.py
+- canteen_management/base.py
+- canteen_management/local.py
+- canteen_management/production.py
+- canteen_management/urls.py
+- canteen_management/media_views.py
+- accounts/models.py
+- home/forms.py
+- home/views.py
+- home/templates/admin.html
+- home/templates/update_admin.html
+- home/templates/admin_analytics.html
+- home/templates/admin_orders.html
+- home/templates/widgets/admin_image_input.html
+- inventory/models.py
+- inventory/views.py
+- inventory/templates/menu.html
+- orders/models.py
+- orders/views.py
+- payments/models.py
+- payments/views.py
+- payments/templates/receipt.html
+- payments/management/commands/payment_consistency.py

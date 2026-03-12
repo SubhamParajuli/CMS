@@ -1,0 +1,381 @@
+{% extends "index.html" %}
+{% block start %}
+{% url 'admin_sales_analytics_snapshot' as analytics_snapshot_url %}
+<div class="container-fluid">
+  <div class="row bg-dark text-white py-3 mb-4 animate-slide-down align-items-center">
+    <div class="col-lg-5 col-md-6">
+      <h3 class="mb-0"><i class="fa fa-chart-line"></i> Sales Analytics</h3>
+    </div>
+    <div class="col-lg-4 col-md-6 mt-3 mt-md-0">
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'admin_page' %}" class="btn btn-sm btn-outline-light"><i class="fa fa-list me-1"></i>Inventory</a>
+        <a href="{% url 'admin_sales_analytics' %}" class="btn btn-sm btn-warning text-dark"><i class="fa fa-chart-line me-1"></i>Sales</a>
+        <a href="{% url 'admin_orders_page' %}" class="btn btn-sm btn-outline-light"><i class="fa fa-receipt me-1"></i>Orders</a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-12 text-end mt-3 mt-lg-0">
+      <form method="post" action="{% url 'logout' %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-sign-out-alt"></i> Logout</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-1">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Today</div>
+          <h4 class="mb-1" id="analytics-today-order-count">{{ analytics.today_order_count }}</h4>
+          <div class="text-success" id="analytics-today-revenue">Rs {{ analytics.today_revenue }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-2">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Last 7 Days</div>
+          <h4 class="mb-1" id="analytics-week-order-count">{{ analytics.week_order_count }}</h4>
+          <div class="text-success" id="analytics-week-revenue">Rs {{ analytics.week_revenue }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-3">
+        <div class="card-body">
+          <div class="text-muted small mb-1">This Month</div>
+          <h4 class="mb-1" id="analytics-month-order-count">{{ analytics.month_order_count }}</h4>
+          <div class="text-success" id="analytics-month-revenue">Rs {{ analytics.month_revenue }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-4">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Active Customers</div>
+          <h4 class="mb-1" id="analytics-unique-customers">{{ analytics.unique_customers }}</h4>
+          <div class="text-muted small">Unique users this month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-2">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fa fa-calendar-week me-1"></i>Weekly Best Sellers</h5>
+        </div>
+        <div class="card-body">
+          <div class="rounded bg-light p-3 mb-3{% if not top_week_item %} d-none{% endif %}" id="top-week-item-card">
+            <div class="small text-muted">Top Item This Week</div>
+            <div class="fw-semibold" id="top-week-item-name">{% if top_week_item %}{{ top_week_item.item__item_name }}{% endif %}</div>
+            <div class="small text-muted" id="top-week-item-meta">{% if top_week_item %}{{ top_week_item.quantity_sold }} units across {{ top_week_item.order_count }} orders{% endif %}</div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Units Sold</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody id="weekly-best-sellers-body">
+                {% for item in week_top_items %}
+                <tr>
+                  <td>{{ item.item__item_name }}</td>
+                  <td>{{ item.quantity_sold }}</td>
+                  <td>{{ item.order_count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center py-3">No sales recorded this week.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0 h-100 animate-fade-in-up stagger-3">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fa fa-calendar-alt me-1"></i>Monthly Best Sellers</h5>
+        </div>
+        <div class="card-body">
+          <div class="rounded bg-light p-3 mb-3{% if not top_month_item %} d-none{% endif %}" id="top-month-item-card">
+            <div class="small text-muted">Top Item This Month</div>
+            <div class="fw-semibold" id="top-month-item-name">{% if top_month_item %}{{ top_month_item.item__item_name }}{% endif %}</div>
+            <div class="small text-muted" id="top-month-item-meta">{% if top_month_item %}{{ top_month_item.quantity_sold }} units across {{ top_month_item.order_count }} orders{% endif %}</div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Units Sold</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-best-sellers-body">
+                {% for item in month_top_items %}
+                <tr>
+                  <td>{{ item.item__item_name }}</td>
+                  <td>{{ item.quantity_sold }}</td>
+                  <td>{{ item.order_count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center py-3">No sales recorded this month.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0 animate-fade-in-up stagger-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fa fa-users me-1"></i>Top Customers This Month</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Orders</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="top-customers-body">
+                {% for customer in top_customers %}
+                <tr>
+                  <td>{{ customer.user__username }}</td>
+                  <td>{{ customer.order_count }}</td>
+                  <td>Rs {{ customer.total_spent }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center py-3">No customer order data yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0 animate-fade-in-up stagger-5">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fa fa-clock me-1"></i>Recent Paid Orders</h5>
+          <a href="{% url 'admin_orders_page' %}" class="btn btn-sm btn-light">View All Orders</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>User</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="recent-orders-body">
+                {% for order in recent_orders %}
+                <tr>
+                  <td>#{{ order.id }}</td>
+                  <td>{{ order.user.username }}</td>
+                  <td>{{ order.total_items }}</td>
+                  <td>Rs {{ order.total_amount }}</td>
+                  <td>{{ order.order_date|date:"M d, Y h:i A" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-muted text-center py-3">No paid orders found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ analytics_snapshot_url|json_script:"analytics-snapshot-url" }}
+<script>
+  const ANALYTICS_POLL_MS = 10000;
+  const analyticsSnapshotUrl = JSON.parse(document.getElementById('analytics-snapshot-url').textContent);
+
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = value;
+    }
+  }
+
+  function buildTopItemsRow(item) {
+    const row = document.createElement('tr');
+    const nameCell = document.createElement('td');
+    nameCell.textContent = item.item_name;
+    row.appendChild(nameCell);
+
+    const quantityCell = document.createElement('td');
+    quantityCell.textContent = item.quantity_sold;
+    row.appendChild(quantityCell);
+
+    const orderCell = document.createElement('td');
+    orderCell.textContent = item.order_count;
+    row.appendChild(orderCell);
+
+    return row;
+  }
+
+  function buildCustomerRow(customer) {
+    const row = document.createElement('tr');
+    ['username', 'order_count'].forEach(key => {
+      const cell = document.createElement('td');
+      cell.textContent = customer[key];
+      row.appendChild(cell);
+    });
+
+    const totalCell = document.createElement('td');
+    totalCell.textContent = `Rs ${customer.total_spent}`;
+    row.appendChild(totalCell);
+    return row;
+  }
+
+  function buildRecentOrderRow(order) {
+    const row = document.createElement('tr');
+    const orderNumberCell = document.createElement('td');
+    orderNumberCell.textContent = `#${order.id}`;
+    row.appendChild(orderNumberCell);
+
+    const userCell = document.createElement('td');
+    userCell.textContent = order.username;
+    row.appendChild(userCell);
+
+    const itemsCell = document.createElement('td');
+    itemsCell.textContent = order.total_items;
+    row.appendChild(itemsCell);
+
+    const totalCell = document.createElement('td');
+    totalCell.textContent = `Rs ${order.total_amount}`;
+    row.appendChild(totalCell);
+
+    const timeCell = document.createElement('td');
+    timeCell.textContent = order.order_date_display;
+    row.appendChild(timeCell);
+
+    return row;
+  }
+
+  function replaceTableBody(bodyId, rows, emptyMessage, buildRow, colSpan) {
+    const body = document.getElementById(bodyId);
+    if (!body) {
+      return;
+    }
+
+    body.replaceChildren();
+
+    if (!rows.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = colSpan;
+      emptyCell.className = 'text-muted text-center py-3';
+      emptyCell.textContent = emptyMessage;
+      emptyRow.appendChild(emptyCell);
+      body.appendChild(emptyRow);
+      return;
+    }
+
+    rows.forEach(row => body.appendChild(buildRow(row)));
+  }
+
+  function updateTopItem(cardId, nameId, metaId, item) {
+    const card = document.getElementById(cardId);
+    const nameElement = document.getElementById(nameId);
+    const metaElement = document.getElementById(metaId);
+    if (!card || !nameElement || !metaElement) {
+      return;
+    }
+
+    if (!item) {
+      card.classList.add('d-none');
+      nameElement.textContent = '';
+      metaElement.textContent = '';
+      return;
+    }
+
+    card.classList.remove('d-none');
+    nameElement.textContent = item.item_name;
+    metaElement.textContent = `${item.quantity_sold} units across ${item.order_count} orders`;
+  }
+
+  async function pollAnalyticsSnapshot() {
+    try {
+      const response = await fetch(analyticsSnapshotUrl, {
+        headers: {
+          Accept: 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      if (payload.analytics) {
+        setText('analytics-today-order-count', payload.analytics.today_order_count);
+        setText('analytics-today-revenue', `Rs ${payload.analytics.today_revenue}`);
+        setText('analytics-week-order-count', payload.analytics.week_order_count);
+        setText('analytics-week-revenue', `Rs ${payload.analytics.week_revenue}`);
+        setText('analytics-month-order-count', payload.analytics.month_order_count);
+        setText('analytics-month-revenue', `Rs ${payload.analytics.month_revenue}`);
+        setText('analytics-unique-customers', payload.analytics.unique_customers);
+      }
+
+      updateTopItem('top-week-item-card', 'top-week-item-name', 'top-week-item-meta', payload.top_week_item);
+      updateTopItem('top-month-item-card', 'top-month-item-name', 'top-month-item-meta', payload.top_month_item);
+
+      replaceTableBody(
+        'weekly-best-sellers-body',
+        Array.isArray(payload.week_top_items) ? payload.week_top_items : [],
+        'No sales recorded this week.',
+        buildTopItemsRow,
+        3
+      );
+      replaceTableBody(
+        'monthly-best-sellers-body',
+        Array.isArray(payload.month_top_items) ? payload.month_top_items : [],
+        'No sales recorded this month.',
+        buildTopItemsRow,
+        3
+      );
+      replaceTableBody(
+        'top-customers-body',
+        Array.isArray(payload.top_customers) ? payload.top_customers : [],
+        'No customer order data yet.',
+        buildCustomerRow,
+        3
+      );
+      replaceTableBody(
+        'recent-orders-body',
+        Array.isArray(payload.recent_orders) ? payload.recent_orders : [],
+        'No paid orders found.',
+        buildRecentOrderRow,
+        5
+      );
+    } catch (error) {
+      console.error('Analytics polling failed', error);
+    }
+  }
+
+  window.setInterval(pollAnalyticsSnapshot, ANALYTICS_POLL_MS);
+</script>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "index.html" %}
+{% block start %}
+<div class="container-fluid">
+  <div class="row bg-dark text-white py-3 mb-4 animate-slide-down align-items-center">
+    <div class="col-lg-5 col-md-6">
+      <h3 class="mb-0"><i class="fa fa-receipt"></i> User Orders</h3>
+    </div>
+    <div class="col-lg-4 col-md-6 mt-3 mt-md-0">
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'admin_page' %}" class="btn btn-sm btn-outline-light"><i class="fa fa-list me-1"></i>Inventory</a>
+        <a href="{% url 'admin_sales_analytics' %}" class="btn btn-sm btn-outline-light"><i class="fa fa-chart-line me-1"></i>Sales</a>
+        <a href="{% url 'admin_orders_page' %}" class="btn btn-sm btn-warning text-dark"><i class="fa fa-receipt me-1"></i>Orders</a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-12 text-end mt-3 mt-lg-0">
+      <form method="post" action="{% url 'logout' %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-sign-out-alt"></i> Logout</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Orders</div>
+          <h4 class="mb-0" id="orders-count">{{ order_stats.order_count }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Paid Orders</div>
+          <h4 class="mb-0" id="paid-orders-count">{{ order_stats.paid_count }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <div class="text-muted small mb-1">Revenue</div>
+          <h4 class="mb-0 text-success" id="orders-revenue">Rs {{ order_stats.revenue }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end mb-3" id="orders-filter-form">
+        <div class="col-md-5">
+          <label class="form-label">Search User</label>
+          <input type="text" name="user" value="{{ current_user_query }}" class="form-control" placeholder="Filter by username">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Range</label>
+          <select name="range" class="form-select">
+            <option value="all" {% if current_range == 'all' %}selected{% endif %}>All time</option>
+            <option value="week" {% if current_range == 'week' %}selected{% endif %}>Last 7 days</option>
+            <option value="month" {% if current_range == 'month' %}selected{% endif %}>This month</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-grid">
+          <button type="submit" class="btn btn-primary"><i class="fa fa-filter me-1"></i>Apply Filters</button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Order</th>
+              <th>User</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Placed At</th>
+            </tr>
+          </thead>
+          <tbody id="orders-table-body">
+            {% for order in page_obj %}
+            <tr>
+              <td class="fw-semibold">#{{ order.id }}</td>
+              <td>{{ order.user.username }}</td>
+              <td>
+                <div class="small">
+                  {% for item in order.items.all %}
+                  <div>{{ item.item.item_name }} x {{ item.quantity }}</div>
+                  {% empty %}
+                  <span class="text-muted">No items</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>Rs {{ order.total_amount }}</td>
+              <td>
+                {% if order.is_paid %}
+                <span class="badge bg-success">Paid</span>
+                {% else %}
+                <span class="badge bg-secondary">Pending</span>
+                {% endif %}
+              </td>
+              <td>{{ order.order_date|date:"M d, Y h:i A" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No orders match the current filters.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&user={{ current_user_query }}&range={{ current_range }}">Previous</a></li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&user={{ current_user_query }}&range={{ current_range }}">Next</a></li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  const ordersSnapshotUrl = '{% url "admin_orders_snapshot" %}';
+  const ordersTableBody = document.getElementById('orders-table-body');
+  const ordersFilterForm = document.getElementById('orders-filter-form');
+  const ORDERS_POLL_MS = 10000;
+
+  function createTextCell(tagName, text, className = '') {
+    const cell = document.createElement(tagName);
+    if (className) {
+      cell.className = className;
+    }
+    cell.textContent = text;
+    return cell;
+  }
+
+  function buildOrderRow(order) {
+    const row = document.createElement('tr');
+    row.appendChild(createTextCell('td', `#${order.id}`, 'fw-semibold'));
+    row.appendChild(createTextCell('td', order.username));
+
+    const itemsCell = document.createElement('td');
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'small';
+    if (order.items.length) {
+      order.items.forEach(item => {
+        const line = document.createElement('div');
+        line.textContent = `${item.name} x ${item.quantity}`;
+        itemsWrap.appendChild(line);
+      });
+    } else {
+      const empty = document.createElement('span');
+      empty.className = 'text-muted';
+      empty.textContent = 'No items';
+      itemsWrap.appendChild(empty);
+    }
+    itemsCell.appendChild(itemsWrap);
+    row.appendChild(itemsCell);
+
+    row.appendChild(createTextCell('td', `Rs ${order.total_amount}`));
+
+    const statusCell = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `badge ${order.is_paid ? 'bg-success' : 'bg-secondary'}`;
+    badge.textContent = order.is_paid ? 'Paid' : 'Pending';
+    statusCell.appendChild(badge);
+    row.appendChild(statusCell);
+
+    row.appendChild(createTextCell('td', order.order_date_display));
+    return row;
+  }
+
+  async function pollOrdersSnapshot() {
+    try {
+      const formData = new FormData(ordersFilterForm);
+      const query = new URLSearchParams(formData);
+      const pageMatch = new URLSearchParams(window.location.search).get('page');
+      if (pageMatch) {
+        query.set('page', pageMatch);
+      }
+
+      const response = await fetch(`${ordersSnapshotUrl}?${query.toString()}`, {
+        headers: {
+          Accept: 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      const ordersCount = document.getElementById('orders-count');
+      const paidOrdersCount = document.getElementById('paid-orders-count');
+      const ordersRevenue = document.getElementById('orders-revenue');
+
+      if (payload.stats) {
+        if (ordersCount) {
+          ordersCount.textContent = payload.stats.order_count;
+        }
+        if (paidOrdersCount) {
+          paidOrdersCount.textContent = payload.stats.paid_count;
+        }
+        if (ordersRevenue) {
+          ordersRevenue.textContent = `Rs ${payload.stats.revenue}`;
+        }
+      }
+
+      if (!ordersTableBody || !Array.isArray(payload.orders)) {
+        return;
+      }
+
+      ordersTableBody.replaceChildren();
+      if (!payload.orders.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 6;
+        emptyCell.className = 'text-center text-muted py-4';
+        emptyCell.textContent = 'No orders match the current filters.';
+        emptyRow.appendChild(emptyCell);
+        ordersTableBody.appendChild(emptyRow);
+        return;
+      }
+
+      payload.orders.forEach(order => {
+        ordersTableBody.appendChild(buildOrderRow(order));
+      });
+    } catch (error) {
+      console.error('Orders polling failed', error);
+    }
+  }
+
+  window.setInterval(pollOrdersSnapshot, ORDERS_POLL_MS);
+</script>
+{% endblock %}

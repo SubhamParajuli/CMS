@@ -9,7 +9,7 @@
     {% csrf_token %}
     <div class="mb-3">
       <h2 class="text-center animate-fade-in stagger-1">
-        <i class="fa fa-user-plus me-2" style="color:var(--accent)"></i>Register
+        <i class="fa fa-user-plus me-2 auth-title-icon" style="color:var(--accent)"></i>Register
       </h2>
       <hr />
 
@@ -59,7 +59,7 @@
         </label>
         <div class="input-group">
           {{ form.password }}
-          <button class="btn btn-outline-secondary" type="button" id="register-toggle" aria-label="Toggle password visibility">
+          <button class="btn btn-outline-secondary password-toggle" type="button" id="register-toggle" aria-label="Toggle password visibility">
             <i class="fa fa-eye"></i>
           </button>
         </div>
@@ -78,7 +78,7 @@
         </label>
         <div class="input-group">
           {{ form.password_confirm }}
-          <button class="btn btn-outline-secondary" type="button" id="confirm-toggle" aria-label="Toggle confirm password visibility">
+          <button class="btn btn-outline-secondary password-toggle" type="button" id="confirm-toggle" aria-label="Toggle confirm password visibility">
             <i class="fa fa-eye"></i>
           </button>
         </div>

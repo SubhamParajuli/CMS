@@ -92,7 +92,7 @@
               <!-- Price -->
               <div class="mb-2">
                 <span class="fw-bold text-success" style="font-size: 0.95rem;">Rs {{ item.price }}</span>
-                <div class="small text-muted">Available: {{ item.quantity }}</div>
+                <div class="small text-muted available-stock">Available: {{ item.quantity }}</div>
               </div>
 
               <!-- Quantity Selector -->
@@ -100,7 +100,7 @@
                 <button class="btn btn-sm btn-outline-secondary qty-btn minus" style="width: 24px; height: 24px; padding: 0; font-size: 0.75rem;">
                   <i class="fa fa-minus"></i>
                 </button>
-                <span class="qty-value fw-semibold" style="font-size: 0.9rem;">1</span>
+                <span class="qty-value fw-semibold" style="font-size: 0.9rem;">0</span>
                 <button class="btn btn-sm btn-outline-secondary qty-btn plus" style="width: 24px; height: 24px; padding: 0; font-size: 0.75rem;">
                   <i class="fa fa-plus"></i>
                 </button>
@@ -150,9 +150,12 @@
 
     <!-- Cart Header -->
     <div class="cart-header d-flex justify-content-between align-items-center border-bottom border-secondary pb-2 mb-2">
-      <h5 class="mb-0">
-        <i class="fa fa-shopping-cart me-1"></i> My Cart
-      </h5>
+      <div>
+        <h5 class="mb-0">
+          <i class="fa fa-shopping-cart me-1"></i> My Cart
+        </h5>
+        <div class="small text-light-emphasis" id="cart-summary">0 selections</div>
+      </div>
       <span id="cart-count" class="badge bg-warning text-dark">0</span>
     </div>
 
@@ -166,6 +169,10 @@
       <div class="d-flex justify-content-between fw-bold mb-2">
         <span>Total</span>
         <span id="cart-total" class="text-warning">Rs 0</span>
+      </div>
+      <div class="d-flex justify-content-between small text-light-emphasis mb-2">
+        <span>Total Items</span>
+        <span id="cart-total-items">0</span>
       </div>
 
       <div class="d-grid gap-1">
@@ -188,6 +195,14 @@
       <div id="menu-toast-body" class="toast-body">Something went wrong.</div>
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
+  </div>
+</div>
+
+<div id="checkout-transition" class="checkout-transition-overlay" aria-hidden="true">
+  <div class="checkout-transition-card shadow-lg">
+    <div class="spinner-border text-warning mb-3" role="status" aria-hidden="true"></div>
+    <h5 class="mb-2">Generating Receipt</h5>
+    <p class="mb-0 text-muted">Please wait while we confirm your checkout.</p>
   </div>
 </div>
 <style>
@@ -245,6 +260,36 @@
 
 .cart-item:hover {
   background-color: #2c3034 !important;
+}
+
+.cart-item-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #d1d5db;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.cart-item-unit-price {
+  color: #adb5bd;
+  font-size: 0.75rem;
+}
+
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.cart-item-controls .btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
 }
 
 .cart-item-removing {
@@ -367,6 +412,41 @@
     transform: scale(0.93);
   }
 
+  .checkout-transition-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.45);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+    z-index: 1100;
+  }
+
+  .checkout-transition-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .checkout-transition-card {
+    width: min(360px, calc(100vw - 2rem));
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.5rem;
+    text-align: center;
+    transform: translateY(18px) scale(0.98);
+    transition: transform 0.28s ease;
+  }
+
+  .checkout-transition-overlay.is-visible .checkout-transition-card {
+    transform: translateY(0) scale(1);
+  }
+
   /* .carts div{
     display:flex;
     flex-direction: column;
@@ -400,6 +480,13 @@
       font-size: 0.85rem;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .checkout-transition-overlay,
+    .checkout-transition-card {
+      transition: none !important;
+    }
+  }
 </style>
 
 <script>
@@ -431,12 +518,16 @@
 
 
 
+  const POLL_INTERVAL_MS = 10000;
+  const inventorySnapshotUrl = '{% url "inventory_snapshot" %}';
 	  const stockByItemId = {};
   const searchInput = document.getElementById('menu-search');
   const chipContainer = document.getElementById('category-chips');
   const emptyState = document.getElementById('menu-empty');
   const checkoutButton = document.getElementById('checkout-button');
   const checkoutSpinner = document.getElementById('checkout-spinner');
+  const checkoutTransition = document.getElementById('checkout-transition');
+  const menuGrid = document.getElementById('menu-grid');
   let activeCategory = 'all';
 
   function showToast(message, variant = 'danger') {
@@ -461,9 +552,135 @@
     checkoutSpinner.classList.toggle('d-none', !isLoading);
   }
 
+  function setCheckoutTransition(isVisible) {
+    if (!checkoutTransition) {
+      return;
+    }
+    checkoutTransition.classList.toggle('is-visible', isVisible);
+    checkoutTransition.setAttribute('aria-hidden', String(!isVisible));
+  }
+
   function getSafeQuantity(value) {
     const quantity = Number.parseInt(value, 10);
     return Number.isInteger(quantity) ? quantity : 0;
+  }
+
+  function resetCardQuantity(card) {
+    const qtyValue = card ? card.querySelector('.qty-value') : null;
+    if (qtyValue) {
+      qtyValue.textContent = '0';
+    }
+  }
+
+  function setCardState(card, availableStock) {
+    if (!card) {
+      return;
+    }
+
+    const qtyValue = card.querySelector('.qty-value');
+    const minusBtn = card.querySelector('.minus');
+    const plusBtn = card.querySelector('.plus');
+    const addBtn = card.querySelector('.add-to-cart');
+    const stockLabel = card.querySelector('.available-stock');
+    const safeStock = getSafeQuantity(availableStock);
+
+    card.dataset.stock = String(safeStock);
+    stockByItemId[card.dataset.itemId] = safeStock;
+
+    if (stockLabel) {
+      stockLabel.textContent = `Available: ${safeStock}`;
+    }
+
+    if (safeStock < 1) {
+      if (qtyValue) {
+        qtyValue.textContent = '0';
+      }
+      if (minusBtn) {
+        minusBtn.disabled = true;
+      }
+      if (plusBtn) {
+        plusBtn.disabled = true;
+      }
+      if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.innerHTML = '<i class="fa fa-ban me-1"></i>Out of stock';
+      }
+      return;
+    }
+
+    const currentQty = Math.min(getSafeQuantity(qtyValue ? qtyValue.textContent : 0), safeStock);
+    if (qtyValue) {
+      qtyValue.textContent = String(currentQty);
+    }
+    if (minusBtn) {
+      minusBtn.disabled = currentQty <= 0;
+    }
+    if (plusBtn) {
+      plusBtn.disabled = currentQty >= safeStock;
+    }
+    if (addBtn) {
+      addBtn.disabled = false;
+      addBtn.innerHTML = '<i class="fa fa-cart-plus me-1"></i>Add';
+    }
+  }
+
+  function applyInventorySnapshot(items) {
+    const snapshotItems = new Map(items.map(item => [String(item.id), item]));
+
+    document.querySelectorAll('.food-card').forEach(card => {
+      const snapshotItem = snapshotItems.get(card.dataset.itemId);
+      if (!snapshotItem) {
+        setCardState(card, 0);
+        return;
+      }
+
+      const title = card.querySelector('.card-title');
+      const priceLabel = card.querySelector('.text-success');
+      const addBtn = card.querySelector('.add-to-cart');
+
+      if (title) {
+        title.textContent = snapshotItem.item_name;
+      }
+      if (priceLabel) {
+        priceLabel.textContent = `Rs ${snapshotItem.price}`;
+      }
+      card.dataset.name = snapshotItem.item_name;
+      card.dataset.category = snapshotItem.category;
+      card.dataset.categoryLabel = snapshotItem.category_label;
+      if (addBtn) {
+        addBtn.dataset.name = snapshotItem.item_name;
+        addBtn.dataset.price = snapshotItem.price;
+      }
+
+      setCardState(card, snapshotItem.is_available ? snapshotItem.quantity : 0);
+    });
+
+    cart = sanitizeCart(cart);
+    saveCart();
+    renderCart();
+    filterMenu();
+  }
+
+  async function pollInventorySnapshot() {
+    try {
+      const response = await fetch(inventorySnapshotUrl, {
+        headers: {
+          Accept: 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      if (Array.isArray(payload.items)) {
+        applyInventorySnapshot(payload.items);
+      }
+    } catch (error) {
+      console.error('Inventory polling failed', error);
+    }
   }
 
   function sanitizeCart(rawCart) {
@@ -582,14 +799,17 @@
       return;
     }
 
-    qtyValue.textContent = '1';
+    qtyValue.textContent = '0';
+    minusBtn.disabled = true;
 
     minusBtn.addEventListener('click', function(e) {
       e.preventDefault();
       const currentQty = getSafeQuantity(qtyValue.textContent);
-      if (currentQty > 1) {
+      if (currentQty > 0) {
         qtyValue.textContent = currentQty - 1;
       }
+      minusBtn.disabled = getSafeQuantity(qtyValue.textContent) <= 0;
+      plusBtn.disabled = false;
     });
 
     plusBtn.addEventListener('click', function(e) {
@@ -598,6 +818,8 @@
       if (currentQty < availableStock) {
         qtyValue.textContent = currentQty + 1;
       }
+      minusBtn.disabled = false;
+      plusBtn.disabled = getSafeQuantity(qtyValue.textContent) >= availableStock;
     });
   });
 
@@ -647,16 +869,43 @@
     localStorage.setItem(cartStorageKey, JSON.stringify(cart));
   }
 
+  function decreaseCartItem(itemId) {
+    if (!cart[itemId]) {
+      return;
+    }
+
+    cart[itemId].quantity -= 1;
+    if (cart[itemId].quantity <= 0) {
+      delete cart[itemId];
+    }
+
+    saveCart();
+    renderCart();
+  }
+
+  function removeCartItem(itemId) {
+    if (!cart[itemId]) {
+      return;
+    }
+
+    delete cart[itemId];
+    saveCart();
+    renderCart();
+  }
+
 function renderCart() {
 
     let container = document.getElementById('cart-container');
     let totalElement = document.getElementById('cart-total');
     let countElement = document.getElementById('cart-count');
+  let totalItemsElement = document.getElementById('cart-total-items');
+  let summaryElement = document.getElementById('cart-summary');
 
     container.replaceChildren();
 
     let total_price = 0;
     let total_items = 0;
+  let selection_count = 0;
 
     for (let key in cart) {
 
@@ -665,6 +914,7 @@ function renderCart() {
 
         total_price += itemTotal;
         total_items += item.quantity;
+    selection_count += 1;
 
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item p-2 mb-2 rounded border border-secondary bg-dark';
@@ -680,10 +930,15 @@ function renderCart() {
         itemInfo.appendChild(itemName);
 
         const itemMeta = document.createElement('small');
-        itemMeta.className = 'text-muted';
+        itemMeta.className = 'cart-item-unit-price d-block';
         itemMeta.id = 'price_quant';
-        itemMeta.textContent = `Rs ${item.price} × ${item.quantity}`;
+        itemMeta.textContent = `Unit Price: Rs ${item.price}`;
         itemInfo.appendChild(itemMeta);
+
+        const itemQuantity = document.createElement('div');
+        itemQuantity.className = 'cart-item-qty';
+        itemQuantity.innerHTML = `<i class="fa fa-layer-group"></i> Qty: ${item.quantity}`;
+        itemInfo.appendChild(itemQuantity);
 
         const itemActions = document.createElement('div');
         itemActions.className = 'text-end';
@@ -693,31 +948,38 @@ function renderCart() {
         itemTotalElement.textContent = `Rs ${itemTotal}`;
         itemActions.appendChild(itemTotalElement);
 
+        const itemControls = document.createElement('div');
+        itemControls.className = 'cart-item-controls justify-content-end';
+
+        const decreaseButton = document.createElement('button');
+        decreaseButton.type = 'button';
+        decreaseButton.className = 'btn btn-sm btn-outline-light';
+        decreaseButton.setAttribute('aria-label', `Decrease ${item.name}`);
+        decreaseButton.innerHTML = '<i class="fa fa-minus"></i>';
+        decreaseButton.addEventListener('click', function () {
+          decreaseCartItem(key);
+        });
+        itemControls.appendChild(decreaseButton);
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
-        removeButton.className = 'btn btn-sm btn-outline-danger mt-1 remove-item';
+        removeButton.className = 'btn btn-sm btn-outline-danger remove-item';
         removeButton.dataset.id = key;
-
-        const removeIcon = document.createElement('i');
-        removeIcon.className = 'fa fa-trash';
-        removeButton.appendChild(removeIcon);
-
+        removeButton.setAttribute('aria-label', `Remove ${item.name}`);
+        removeButton.innerHTML = '<i class="fa fa-trash"></i>';
         removeButton.addEventListener('click', function () {
           const itemEl = this.closest('.cart-item');
           if (itemEl) {
             itemEl.classList.add('cart-item-removing');
             setTimeout(() => {
-              delete cart[this.dataset.id];
-              saveCart();
-              renderCart();
+              removeCartItem(this.dataset.id);
             }, 250);
           } else {
-            delete cart[this.dataset.id];
-            saveCart();
-            renderCart();
+            removeCartItem(this.dataset.id);
           }
         });
-        itemActions.appendChild(removeButton);
+        itemControls.appendChild(removeButton);
+        itemActions.appendChild(itemControls);
 
         content.appendChild(itemInfo);
         content.appendChild(itemActions);
@@ -727,6 +989,12 @@ function renderCart() {
 
     totalElement.innerText = `Rs ${total_price}`;
     countElement.innerText = total_items;
+    if (totalItemsElement) {
+      totalItemsElement.innerText = total_items;
+    }
+    if (summaryElement) {
+      summaryElement.innerText = `${selection_count} selection${selection_count === 1 ? '' : 's'}`;
+    }
 
     // Animate cart count badge
     countElement.classList.remove('cart-count-pop');
@@ -771,6 +1039,16 @@ document.querySelectorAll('.add-to-cart').forEach(btn => {
             this.innerHTML = '<i class="fa fa-cart-plus me-1"></i>Add';
         }, 1500);
 
+        resetCardQuantity(card);
+        const minusBtn = card.querySelector('.minus');
+        const plusBtn = card.querySelector('.plus');
+        if (minusBtn) {
+          minusBtn.disabled = true;
+        }
+        if (plusBtn) {
+          plusBtn.disabled = getSafeQuantity(card.dataset.stock) < 1;
+        }
+
     });
 
 });
@@ -806,15 +1084,31 @@ function checkout() {
             return;
         }
         if (payload.ok && payload.data.success) {
+          setCheckoutTransition(true);
             clearCart();
+          pollInventorySnapshot();
+          setTimeout(() => {
             window.location.href = `/receipt/${payload.data.order_id}/`;
+          }, 450);
         } else {
+          setCheckoutTransition(false);
             showToast(payload.data.error || 'Checkout failed. Please try again.', 'danger');
         }
     })
-    .catch(() => showToast('Checkout failed. Please try again.', 'danger'))
-    .finally(() => setCheckoutLoading(false));
+      .catch(() => {
+        setCheckoutTransition(false);
+        showToast('Checkout failed. Please try again.', 'danger');
+      })
+      .finally(() => {
+        if (!checkoutTransition || !checkoutTransition.classList.contains('is-visible')) {
+          setCheckoutLoading(false);
+        }
+      });
 }
+
+  if (menuGrid) {
+    window.setInterval(pollInventorySnapshot, POLL_INTERVAL_MS);
+  }
 </script>
 
 {% endblock %}

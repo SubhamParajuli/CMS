@@ -8,7 +8,7 @@
     <title>Canteen Management System</title>
 
     {% load static %}
-
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'favicon.ico' %}"/>
     <style>
         :root {
             --accent: #1d4ed8;
@@ -98,6 +98,25 @@
         .auth-form .form-control,
         .auth-form .form-select {
             margin-bottom: 0.5rem;
+        }
+
+        .auth-form .input-group-text,
+        .auth-form .password-toggle {
+            min-width: 44px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-form .input-group-text i,
+        .auth-form .password-toggle i {
+            width: 1rem;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .auth-title-icon {
+            font-size: 1.05em;
+            vertical-align: -0.08em;
         }
 
         .auth-hint {

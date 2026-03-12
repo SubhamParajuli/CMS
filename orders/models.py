@@ -17,6 +17,10 @@ class Order(models.Model):
     )
     is_paid=models.BooleanField(default=False)
 
+    @property
+    def total_items(self):
+        return sum(item.quantity for item in self.items.all())
+
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"
     
