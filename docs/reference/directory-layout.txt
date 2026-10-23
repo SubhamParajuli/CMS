@@ -1,0 +1,39 @@
+Canteen Management System — directory layout
+
+CMS/
+├── README.md                    Local setup and app overview
+├── manage.py                    Django management entry point
+├── requirements.txt             Python dependencies
+├── .env.example                 Example local configuration
+├── Procfile                     Static collection and Gunicorn startup
+├── runtime.txt                  Python runtime version
+├── accounts/                    Users, roles, migrations, and tests
+├── canteen_management/          Settings, routes, and server entry points
+├── home/                        Account pages and staff dashboards
+│   └── templates/               Landing, account, inventory, and staff pages
+├── inventory/                   Menu, stock, migrations, and tests
+│   ├── fixtures/sample_menu.json  Four synthetic menu items for local demos
+│   └── templates/menu.html      Customer menu and cart
+├── orders/                      Checkout, order models, migrations, and tests
+├── payments/                    Cash records and receipts
+│   ├── management/commands/     Payment consistency audit command
+│   └── templates/receipt.html   Printable receipt
+├── public/static/               Shared static assets
+├── scripts/railway_start.sh      Legacy optional startup script
+└── docs/
+    ├── README.md                Documentation index
+    ├── deployment.md            Hosted configuration and database setup
+    ├── assets/menu.png          Customer menu screenshot
+    ├── database/
+    │   ├── README.md            Schema references and relationships
+    │   ├── schema.dbml          Business-domain diagram source
+    │   ├── schema.sql           Annotated PostgreSQL reference
+    │   └── schema.pdf           Earlier schema export
+    ├── reference/
+    │   ├── project-guide.md     Source guide and request flows
+    │   └── directory-layout.txt This file
+    └── study/dbms-viva.md        DBMS course notes
+
+Local .env files, virtual environments, SQLite databases, new uploads, and
+collected staticfiles are ignored. Some older sample media remain tracked.
+Each Django app keeps its own models, migrations, tests, and templates together.

@@ -1,0 +1,50 @@
+[
+  {
+    "model": "inventory.inventory",
+    "pk": 1,
+    "fields": {
+      "item_name": "Momo",
+      "category": "snacks",
+      "price": "120.00",
+      "quantity": 30,
+      "food_image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "inventory.inventory",
+    "pk": 2,
+    "fields": {
+      "item_name": "Rice",
+      "category": "main_course",
+      "price": "150.00",
+      "quantity": 20,
+      "food_image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "inventory.inventory",
+    "pk": 3,
+    "fields": {
+      "item_name": "Coke",
+      "category": "beverages",
+      "price": "80.00",
+      "quantity": 40,
+      "food_image": "",
+      "is_available": true
+    }
+  },
+  {
+    "model": "inventory.inventory",
+    "pk": 4,
+    "fields": {
+      "item_name": "Pizza",
+      "category": "main_course",
+      "price": "250.00",
+      "quantity": 15,
+      "food_image": "",
+      "is_available": true
+    }
+  }
+]

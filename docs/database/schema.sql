@@ -1,6 +1,9 @@
 -- Canteen Management System business-domain schema
 -- Target dialect: PostgreSQL
--- Generated from the Django apps accounts, inventory, orders, and payments.
+-- Reference example for accounts, inventory, orders, and payments.
+-- Not exact migration output: extra CHECK rules, defaults, and SQL-level
+-- cascades are illustrative. Use Django migrations for the application database.
+-- See README.md in this directory for the differences.
 -- Django framework tables such as django_session, auth_group, django_admin_log,
 -- django_migrations, and auth_permission are intentionally omitted.
 
@@ -31,7 +34,7 @@ CREATE TABLE inventory_inventory (
     item_name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL,
     price NUMERIC(6,2) NOT NULL,
-    quantity BIGINT NOT NULL,
+    quantity INTEGER NOT NULL,
     food_image VARCHAR(100) NULL,
     is_available BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT inventory_inventory_category_check CHECK (

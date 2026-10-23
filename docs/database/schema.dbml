@@ -1,6 +1,6 @@
 Project CMS {
   database_type: 'PostgreSQL'
-  Note: 'Business-domain ERD only. Django framework tables such as django_session, auth_group, django_admin_log, django_migrations, and auth_permission are intentionally omitted.'
+  Note: 'Business-domain reference, not exact migration output. Defaults summarize application behavior; cascade links describe Django ORM deletion behavior. Framework tables are omitted. See README.md for schema differences.'
 }
 
 Table accounts_customuser {
@@ -19,11 +19,6 @@ Table accounts_customuser {
   role varchar(20) [not null, note: 'Business role: admin, student, or teacher.']
 
   Note: 'Business users of the canteen system. The table comes from a custom Django user model, but auth join tables are intentionally excluded from the ERD.'
-
-  indexes {
-    (username) [unique, name: 'accounts_customuser_username_key']
-    (user_code) [unique, name: 'accounts_customuser_user_code_key']
-  }
 }
 
 Table inventory_inventory {
@@ -31,7 +26,7 @@ Table inventory_inventory {
   item_name varchar(100) [not null, note: 'Display name shown on the menu.']
   category varchar(50) [not null, note: 'Menu category: main_course, snacks, beverages, desserts, or other.']
   price numeric(6,2) [not null, note: 'Current selling price.']
-  quantity bigint [not null, note: 'Current stock quantity available.']
+  quantity int [not null, note: 'Current stock quantity available; nonnegative PositiveIntegerField.']
   food_image varchar(100) [note: 'Optional path to the uploaded item image.']
   is_available boolean [not null, default: true, note: 'False when the item should not be offered for sale.']
 
@@ -69,7 +64,7 @@ Table orders_orderitem {
 
 Table payments_payment {
   id bigint [pk, increment, note: 'Primary key for a payment record.']
-  order_id bigint [not null, unique, note: 'Exactly one payment can exist per order.']
+  order_id bigint [not null, unique, note: 'At most one payment can exist per order.']
   payment_method varchar(10) [not null, default: 'CASH', note: 'Payment method label; current code path uses CASH.']
   amount_paid numeric(8,2) [not null, note: 'Amount paid for the related order.']
   payment_time timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Timestamp when the payment was recorded.']
@@ -79,7 +74,7 @@ Table payments_payment {
 
 Table payments_receipt {
   id bigint [pk, increment, note: 'Primary key for a receipt record.']
-  order_id bigint [not null, unique, note: 'Exactly one receipt can exist per order.']
+  order_id bigint [not null, unique, note: 'At most one receipt can exist per order.']
   generated_at timestamptz [not null, default: `CURRENT_TIMESTAMP`, note: 'Timestamp when the receipt record was created.']
 
   Note: 'One-to-one receipt metadata for a paid order.'
@@ -91,4 +86,4 @@ Ref: orders_orderitem.item_id > inventory_inventory.id [delete: cascade]
 Ref: payments_payment.order_id - orders_order.id [delete: cascade]
 Ref: payments_receipt.order_id - orders_order.id [delete: cascade]
 
-Note: 'Key business constraints represented in SQL but not fully enforceable in DBML include valid roles, user_code regex, non-negative money values, and category enumerations. Paid-order invariants such as payment.amount_paid = order.total_amount would require triggers if enforced at the database layer.'
+Note: 'Django migrations enforce valid roles, unique user codes, nonnegative integer quantities, and relational keys. Five-digit code format, positive prices, category choices, and checkout quantities are validated in application code. The SQL references add illustrative checks beyond the migrations. Payment totals and paid-order records are maintained by checkout, not a database trigger.'

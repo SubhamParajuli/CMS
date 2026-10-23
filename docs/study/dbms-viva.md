@@ -1,10 +1,9 @@
 # DBMS Viva Guide
 
-Updated: 2026-03-12
 Course: DBMS BCT III_I
-Project: Django-based Canteen Management System using PostgreSQL in production
+Project: Django-based Canteen Management System with PostgreSQL deployment settings
 
-This guide is written as a viva-preparation and defense document. It maps the implemented project design to core DBMS syllabus concepts using the actual models, relationships, transactions, and deployment architecture present in the codebase.
+These study notes connect the project models and checkout flow to DBMS course concepts. Local development defaults to SQLite; the PostgreSQL examples assume deployment with that backend and describe its expected transaction behavior. These examples are not production concurrency test results. Models and migrations define the application schema; the [SQL and diagram files](../database/README.md) are reference material with additional illustrative constraints.
 
 ## 1. Project Context for Viva
 
@@ -22,7 +21,7 @@ From a DBMS perspective, this is a relational database application with:
 - integrity constraints
 - transaction management during checkout
 - concurrency protection for stock updates
-- production deployment on PostgreSQL
+- production settings for PostgreSQL
 
 ## 2. Chapter 2: Data Models and ER Mapping
 
@@ -130,7 +129,7 @@ Primary role in the system:
 
 #### Primary Keys
 
-All major tables use Django's default integer primary key `id`.
+All major tables use a `BigAutoField` primary key named `id`, represented by a `BIGINT` identity column in PostgreSQL.
 
 Examples:
 
@@ -203,7 +202,7 @@ You can describe the ER design as follows:
 - `CustomUser` is an entity
 - `Inventory` is an entity
 - `Order` is an entity
-- `OrderItem` is a weak or associative entity joining orders and inventory items
+- `OrderItem` is an associative entity joining orders and inventory items, with its own primary key
 - `Payment` and `Receipt` are dependent entities linked to an order
 
 If you are asked to draw or explain the ER diagram, the mapping is:
@@ -211,8 +210,10 @@ If you are asked to draw or explain the ER diagram, the mapping is:
 - `CustomUser` 1 --- N `Order`
 - `Order` 1 --- N `OrderItem`
 - `Inventory` 1 --- N `OrderItem`
-- `Order` 1 --- 1 `Payment`
-- `Order` 1 --- 1 `Receipt`
+- `Order` 1 --- 0..1 `Payment`
+- `Order` 1 --- 0..1 `Receipt`
+
+The unique links allow at most one of each. Checkout creates both for a paid order; the relationship alone does not require every order to have them.
 
 ## 3. Chapter 3: SQL, ORM, Joins, Aggregation, and Views
 
@@ -232,7 +233,7 @@ Examples from your codebase:
 
 - creating `Inventory`, `Order`, `OrderItem`, `Payment`, and `Receipt` tables
 - altering `Inventory.quantity` to a `PositiveIntegerField`
-- adding the `related_name='orders'` improvement on `Order.user`
+- recording `related_name='orders'` in migration state; this ORM name does not itself add a database column
 - creating constraints on `accounts.CustomUser.role`
 
 In an oral defense, a precise answer is:
@@ -391,15 +392,23 @@ Why this is useful in your project:
 
 ### 4.1 Domain and Integrity Constraints in Your Code
 
-Your project already enforces several constraints.
+The database and application enforce different rules. Distinguish them when explaining the design.
 
-#### Domain constraints
+#### Database constraints
 
-- `role` must be one of `admin`, `student`, or `teacher`
-- `user_code` must be exactly 5 digits
-- `price` must be positive
-- `quantity` must be non-negative
-- `payment_method` is constrained by application logic
+- Primary keys, foreign keys, and unique username/user-code fields protect row identity and references.
+- A check constraint restricts `role` to `admin`, `student`, or `teacher`.
+- `PositiveIntegerField` columns require nonnegative inventory and order-item quantities on PostgreSQL and SQLite.
+- Unique foreign keys allow at most one payment and receipt per order.
+
+#### Application validation
+
+- The user model and registration form require exactly five digits in `user_code`; there is no database regex check.
+- The inventory form requires positive whole-rupee prices, valid categories, and nonnegative stock. Decimal money fields do not themselves prevent negative values.
+- Checkout requires at least one unit of each ordered item, checks availability and stock, and records `payment_method='CASH'`.
+- The payment method field is free text with a default, not a database enumeration.
+
+Form/model validation can be bypassed by direct SQL and some bulk ORM operations. The extra price, code-format, and category checks in the reference SQL files are not installed by the current migrations.
 
 #### Entity integrity
 
@@ -431,19 +440,19 @@ For example, the system does not store multiple ordered items inside one `Order`
 
 2NF requires 1NF plus full dependency on the whole key.
 
-Your design satisfies 2NF because:
+With the declared single-column primary keys, these tables have no partial dependency on a composite primary key. Separating line items also keeps the following facts together:
 
 - `OrderItem` separates line-item details from the order header
 - fields like `quantity` and `price_at_purchase` belong to a specific order-item row
-- non-key attributes are not partially dependent on only part of a composite business meaning
+- each line item has its own ID and stores its order, inventory reference, quantity, and purchase price
 
-Even though Django uses surrogate primary keys, the business meaning of `OrderItem` still depends on the combination of order and item participation.
+The model does not declare `(order_id, item_id)` unique. Do not describe that pair as an enforced candidate key.
 
 ### 4.4 Third Normal Form (3NF)
 
 3NF requires that non-key attributes do not depend on other non-key attributes.
 
-Your schema satisfies 3NF because:
+The tables separate the main business entities in a way consistent with 3NF under their declared keys:
 
 - user role and user code are stored in `CustomUser`, not copied into every order
 - item name, category, and current price are stored in `Inventory`, not duplicated in unrelated master tables
@@ -464,7 +473,7 @@ For viva, you can argue that the schema is close to BCNF because:
 - one-to-one tables such as `Payment` and `Receipt` use unique links to `Order`
 - important business constraints are kept in the correct owning relation
 
-There is no evidence in your schema of storing one fact in multiple places unnecessarily across accounts, inventory, and orders.
+A formal BCNF claim needs all relevant functional dependencies. `Order.total_amount`, `Order.is_paid`, and `Payment.amount_paid` also store related facts that checkout must keep consistent; those invariants are not enforced by a cross-table database constraint.
 
 ### 4.6 Why `price_at_purchase` Is Correct and Not Redundancy
 
@@ -483,9 +492,9 @@ This is good normalization for transactional systems.
 
 ### 5.1 PostgreSQL Indexing in This Project
 
-PostgreSQL commonly uses B+ Tree indexes by default for primary keys, unique keys, and many lookup operations.
+PostgreSQL commonly uses B-tree indexes by default for primary keys, unique keys, and many lookup operations.
 
-In your project, B+ Tree indexing is relevant for:
+In your project, B-tree indexing is relevant for:
 
 - primary keys such as `id`
 - unique fields such as `CustomUser.user_code`
@@ -505,7 +514,7 @@ Your code frequently performs relational access such as:
 - selecting order items with their inventory items
 - filtering paid orders by date
 
-These patterns benefit from indexes because PostgreSQL can locate matching rows more efficiently during joins and filtering.
+Django creates indexes for the declared foreign keys. Primary-key and unique lookups have their own indexes. There is no explicit date index in these models; use query plans before claiming a date filter is indexed or adding an index for a workload.
 
 ### 5.3 Hashing Concepts
 
@@ -521,7 +530,7 @@ Static and dynamic hashing are syllabus concepts more often discussed theoretica
 - bucket structure can expand as data grows
 - more adaptable for large or changing datasets
 
-In PostgreSQL, hash-based access methods exist, but most of your common project queries are better explained through B+ Tree indexing because they involve:
+In PostgreSQL, hash-based access methods exist, but most of your common project queries are better explained through B-tree indexing because they involve:
 
 - equality lookups
 - range filtering by date
@@ -530,7 +539,7 @@ In PostgreSQL, hash-based access methods exist, but most of your common project 
 
 For viva, the strongest answer is:
 
-"In my project, practical performance benefits mainly come from PostgreSQL's B+ Tree indexes on keys and foreign keys. Hashing is a valid DBMS concept for exact-match lookup, but my real workload also needs joins, sorting, and date filtering, so B+ Tree indexing is more central."
+"In my project, practical performance benefits mainly come from PostgreSQL's B-tree indexes on keys and foreign keys. Hashing is a valid DBMS concept for exact-match lookup, but my real workload also needs joins, sorting, and date filtering, so B-tree indexing is more central."
 
 ## 6. Chapter 7: Concurrency and ACID
 
@@ -573,13 +582,13 @@ Your project improves isolation using:
 
 - `select_for_update()` on inventory rows during checkout
 
-This prevents simultaneous writes from overselling the same stock.
+On PostgreSQL, cooperating checkout transactions serialize access to those stock rows. SQLite ignores `select_for_update()`, so a local SQLite test does not verify that behavior.
 
 #### Durability
 
 Once a successful transaction commits, the data remains stored even if the server crashes afterward.
 
-This durability is guaranteed by PostgreSQL's transaction and logging system.
+On PostgreSQL, transaction durability relies on its logging and storage configuration. SQLite also provides atomic transactions, but has different concurrency behavior.
 
 ### 6.2 Last Momo Plate Example
 
@@ -592,9 +601,9 @@ What happens in your project?
 3. The first transaction that gets the lock validates quantity and updates stock.
 4. The second transaction waits.
 5. After the first transaction commits, the second transaction reads the updated quantity.
-6. If stock is now zero, the second transaction gets a validation error such as `Only 0 left` or item unavailable.
+6. If stock is now zero, the second transaction gets a validation error such as an item-unavailable response.
 
-This is exactly why PostgreSQL is better than SQLite for production concurrency.
+This example depends on PostgreSQL row locks; it is not the behavior of SQLite's `select_for_update()` implementation.
 
 ### 6.3 MVCC in PostgreSQL
 
@@ -687,7 +696,7 @@ Advantages:
 
 A strong answer in examination language is:
 
-"I kept SQLite for fast local development and test convenience, but Railway production uses PostgreSQL because my application contains concurrent stock updates and transactional checkout, which require stronger multi-user database guarantees."
+"I kept SQLite for fast local development and test convenience, but production settings use PostgreSQL because my application contains concurrent stock updates and transactional checkout, which require stronger multi-user database guarantees."
 
 ## 9. Likely Viva Questions and Model Answers
 
@@ -707,7 +716,7 @@ Answer:
 
 Answer:
 
-The schema satisfies 1NF because values are atomic, 2NF because line-item facts are stored in a separate order-detail table, and 3NF because user, inventory, order, payment, and receipt facts are kept in their proper tables instead of being redundantly copied. It is also close to BCNF because determinants are mainly keys or unique references.
+The entities use atomic values and single-column primary keys. User, menu, order, and line-item facts are separated in a design consistent with 3NF under the declared keys. A formal BCNF claim would require a complete set of functional dependencies. Stored order totals and payment amounts still need consistency checks.
 
 ### 4. How is concurrency handled if two students order the same last item simultaneously?
 
@@ -737,13 +746,13 @@ It makes checkout a single transaction. If any step fails, such as payment creat
 
 Answer:
 
-A database view is a virtual table produced by a query. In my project, a view could be used to store a daily sales summary for reporting, such as number of paid orders and total revenue per day, which would simplify analytics queries.
+A database view is a virtual table produced by a query. In my project, a view could expose a daily sales summary for reporting, such as number of paid orders and total revenue per day, which would simplify analytics queries.
 
 ### 9. What integrity constraints are enforced in your project?
 
 Answer:
 
-The project enforces primary keys, foreign keys, unique user codes, valid user roles, non-negative quantities, positive prices, and authenticated access rules. These constraints protect both database consistency and application correctness.
+The database enforces keys, unique user codes, valid roles, and nonnegative integer quantities. Five-digit code format, positive prices, categories, checkout quantities, and authenticated access are validated in application code. Payment and receipt links are unique, while checkout maintains their consistency with paid orders.
 
 ### 10. How does PostgreSQL recover after a crash?
 
@@ -755,4 +764,4 @@ PostgreSQL uses Write-Ahead Logging. Changes are logged before they are fully ap
 
 If the examiner asks for a final summary, an appropriate closing answer is:
 
-"My project is a relational DBMS application built with Django ORM. It uses normalized entities for users, inventory, orders, payments, and receipts. The checkout flow is transaction-safe, production runs on PostgreSQL, concurrency is protected through row locking and MVCC, and the schema supports both operational processing and admin analytics."
+"My project is a relational DBMS application built with Django ORM. It uses normalized entities for users, inventory, orders, payments, and receipts. The checkout flow is transaction-safe, production settings support PostgreSQL, where checkout uses row locking alongside MVCC, and the schema supports both operational processing and admin analytics."
